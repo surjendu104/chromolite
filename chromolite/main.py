@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -23,9 +25,12 @@ app.add_middleware(
 app.include_router(router=router)
 
 
+# mount frontend build
+STATIC_DIR = Path(__file__).parent / "static"
+
 app.mount(
     "/",
-    StaticFiles(directory="chromolite/static", html=True),
+    StaticFiles(directory=STATIC_DIR, html=True),
     name="frontend",
 )
 
