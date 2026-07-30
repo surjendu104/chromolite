@@ -102,7 +102,7 @@ const DocumentPanel = () => {
                 'hover:bg-sidebar-accent',
               )}
             >
-              <RefreshCcw className="h-4 w-4" />
+              <RefreshCcw onClick={() => fetchDocuments(1, pageSize)}  className="h-4 w-4" />
             </button>
           </div>
         </div>
