@@ -53,15 +53,24 @@ def get_collection(collection_name: str):
     client = db.get_client()
     collection = client.get_collection(name=collection_name)
 
+    print(collection.configuration)
+    print(type(collection.configuration))
+    
+    print(collection.configuration_json)
+    print(type(collection.configuration_json))
+    
+    print(collection.schema)
+    print(type(collection.schema))
+
     response = {
         "id": collection.id,
         "name": collection.name,
         "metadata": collection.metadata,
         "database": collection.database,
         "tenant": collection.tenant,
-        "schema": collection.schema,
-        "configuration": collection.configuration,
-        "configuration_json": collection.configuration_json,
+        "schema": collection.schema.serialize_to_json(),
+        "configuration": collection.configuration_json,
+        # "configuration_json": collection.configuration_json,
         "document_count": collection.count(),
         # "indexing_status": collection.get_indexing_status(),
         "fork_count": collection.fork_count,
