@@ -38,7 +38,6 @@ const DocumentPanel = () => {
 
   const fetchDocuments = useCallback(
     async (page: number, size: number) => {
-      if (!activeCollection || documents.length != 0) return;
       try {
         const response = await getDocuments(activeCollection.name, page, size);
         setDocuments(response.data);
