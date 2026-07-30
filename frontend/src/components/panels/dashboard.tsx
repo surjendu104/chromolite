@@ -157,7 +157,7 @@ const DashboardPanel = () => {
     defaults: Record<string, SchemaTypeConfig>;
     keys: Record<string, SchemaKeyData>;
   };
-  const configJson = details.configuration_json as {
+  const configJson = details.configuration as {
     hnsw: HnswConfig;
     spann: unknown;
     embedding_function: { type: string } | null;
