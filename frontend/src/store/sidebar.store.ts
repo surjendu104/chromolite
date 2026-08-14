@@ -8,7 +8,7 @@ type SidebarStore = {
 };
 
 export const useSidebarStore = create<SidebarStore>((set) => ({
-  activeTab: 'dashboard',
+  activeTab: 'documents',
   collapsed: false,
   setActiveTab: (tab) => set({ activeTab: tab }),
   toggleCollapsed: () => set((s) => ({ collapsed: !s.collapsed })),

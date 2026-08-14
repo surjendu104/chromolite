@@ -1,21 +1,25 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
+import { FileText } from 'lucide-react';
 import { getDocuments } from '../../service/document.service';
+import { getCollectionByName } from '../../service/collection.service';
 import {
   useCollectionStore,
   type Document,
 } from '../../store/collection.store';
-import { cn } from '../../lib/utils';
-import {
-  Database,
-  FileText,
-  MoveLeft,
-  MoveRight,
-  RefreshCcw,
-} from 'lucide-react';
 import { toPagination } from '../../mappers/pagination';
-import DocumentViewer from '../document-viewer';
-
-const PAGE_SIZE_OPTIONS = [10, 50, 100];
+import {
+  filterDocuments,
+  sortDocuments,
+  getAvailableFilterKeys,
+  type SortOption,
+} from '../../lib/document-utils';
+import CollectionHeader from '../collection-header';
+import DocumentToolbar, {
+  type ActiveFilter,
+} from '../document-toolbar';
+import DocumentRow from '../document-row';
+import DocumentPagination from '../document-pagination';
+import DocumentInspector from '../document-inspector';
 
 const DocumentPanel = () => {
   const activeCollection = useCollectionStore((s) => s.activeCollection);
@@ -23,204 +27,293 @@ const DocumentPanel = () => {
   const setDocuments = useCollectionStore((s) => s.setDocuments);
   const pagination = useCollectionStore((s) => s.pagination);
   const setPagination = useCollectionStore((s) => s.setPagination);
-  const [pageSize, setPageSize] = useState(10);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(
-    null,
+  const setActiveCollectionDetails = useCollectionStore(
+    (s) => s.setActiveCollectionDetails,
   );
-  const [openDocumentViewer, setOpenDocumentViewer] = useState(false);
 
-  const toggleDocumentViewer = () => {
-    setOpenDocumentViewer(!openDocumentViewer);
-  };
+  const [pageSize, setPageSize] = useState(10);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sort, setSort] = useState<SortOption>('default');
+  const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleDocumentClick = (document: Document) => {
-    setSelectedDocument(document);
-    setOpenDocumentViewer(true);
-  };
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const [lastCollectionId, setLastCollectionId] = useState<string | null>(
+    activeCollection?.id ?? null,
+  );
+  if (activeCollection?.id !== lastCollectionId) {
+    setLastCollectionId(activeCollection?.id ?? null);
+    setSelectedDocument(null);
+    setSearchQuery('');
+    setActiveFilters([]);
+    setSort('default');
+  }
 
   const fetchDocuments = useCallback(
     async (page: number, size: number) => {
       if (!activeCollection?.name) return;
+      setIsLoading(true);
+      setError(null);
       try {
         const response = await getDocuments(activeCollection.name, page, size);
         setDocuments(response.data);
         setPagination(toPagination(response.pagination));
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        console.error(err);
+        setError('The collection could not be read.');
+      } finally {
+        setIsLoading(false);
       }
     },
     [activeCollection, setDocuments, setPagination],
   );
 
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await fetchDocuments(pagination.page, pageSize);
+    setIsRefreshing(false);
+  }, [fetchDocuments, pagination.page, pageSize]);
+
   useEffect(() => {
-    if (activeCollection) fetchDocuments(1, pageSize);
+    if (!activeCollection) return;
+    let cancelled = false;
+    getCollectionByName(activeCollection.name)
+      .then((res) => {
+        if (!cancelled) setActiveCollectionDetails(res);
+      })
+      .catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCollection, setActiveCollectionDetails]);
+
+  useEffect(() => {
+    if (activeCollection) {
+      // Data fetching is a legitimate effect; state updates follow the request.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchDocuments(1, pageSize);
+    }
   }, [activeCollection, fetchDocuments, pageSize]);
 
-  const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize);
+  const filterMap = useMemo(
+    () => Object.fromEntries(activeFilters.map((f) => [f.key, f.value])),
+    [activeFilters],
+  );
+
+  const displayedDocuments = useMemo(() => {
+    const filtered = filterDocuments(documents, searchQuery, filterMap);
+    return sortDocuments(filtered, sort);
+  }, [documents, searchQuery, filterMap, sort]);
+
+  const availableFilterKeys = useMemo(
+    () => getAvailableFilterKeys(documents),
+    [documents],
+  );
+
+  const handleDocumentSelect = (doc: Document) => {
+    setSelectedDocument(doc);
   };
+
+  const handleCloseInspector = () => {
+    setSelectedDocument(null);
+  };
+
+  const handleAddFilter = (filter: ActiveFilter) => {
+    setActiveFilters((prev) => [
+      ...prev.filter((f) => f.key !== filter.key),
+      filter,
+    ]);
+  };
+
+  const handleRemoveFilter = (key: string) => {
+    setActiveFilters((prev) => prev.filter((f) => f.key !== key));
+  };
+
+  const selectedDocIndex = selectedDocument
+    ? (pagination.page - 1) * pageSize +
+      documents.findIndex((d) => d.id === selectedDocument.id)
+    : 0;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT';
+
+      if (e.key === '/' && !isInput) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+
+      if (e.key === 'Escape' && selectedDocument) {
+        e.preventDefault();
+        handleCloseInspector();
+        return;
+      }
+
+      if (isInput) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setFocusedIndex((i) =>
+          Math.min(i + 1, displayedDocuments.length - 1),
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setFocusedIndex((i) => Math.max(i - 1, 0));
+      } else if (e.key === 'Enter' && focusedIndex >= 0) {
+        e.preventDefault();
+        const doc = displayedDocuments[focusedIndex];
+        if (doc) handleDocumentSelect(doc);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedDocument, displayedDocuments, focusedIndex]);
 
   if (!activeCollection) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground text-sm">
-          Select a collection to view documents
-        </p>
+        <div className="text-center">
+          <p className="text-muted-foreground text-[13px]">
+            Select a collection to explore documents
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (pagination.total === 0 && documents.length === 0) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
-        <FileText className="text-muted-foreground h-8 w-8" />
-        <p className="text-muted-foreground text-sm">No documents found</p>
-      </div>
-    );
-  }
-
-  const start = (pagination.page - 1) * pageSize + 1;
-  const end = Math.min(pagination.page * pageSize, pagination.total);
+  const hasFilters = searchQuery.trim() || activeFilters.length > 0;
+  const showEmptySearch =
+    hasFilters && displayedDocuments.length === 0 && !isLoading;
+  const showEmptyCollection =
+    !hasFilters && pagination.total === 0 && documents.length === 0 && !isLoading;
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="flex flex-1 flex-col overflow-y-auto">
-        {/* Header */}
-        <div className=" flex items-center justify-between p-4">
-          <div className="flex items-baseline justify-start gap-2 text-sm font-medium">
-            <span className="text-foreground flex items-center gap-1">
-              <Database className="h-4 w-4" />
-              {activeCollection.name}
-            </span>
-            <span className="text-foreground flex items-center gap-1">
-              <FileText className="h-4 w-4" />
-              {pagination.total}
-            </span>
-            <button
-              className={cn(
-                'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-sm text-sm',
-                'hover:bg-sidebar-accent',
-              )}
-            >
-              <RefreshCcw
-                onClick={() => fetchDocuments(1, pageSize)}
-                className="h-4 w-4"
-              />
-            </button>
-          </div>
+    <div className="flex h-full min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <CollectionHeader />
 
-          <div className="h-fit w-fit flex gap-2 justify-center items-center">
-            {/* Pagination */}
-            {pagination.total > 0 && (
-              <div className=" flex items-center justify-end px-4 py-2.5">
-                <div className="flex items-center gap-3">
-                  <span className="text-muted-foreground text-sm">
-                    {start}–{end} of {pagination.total}
-                  </span>
-                  <div className="bg-border h-3.5 w-px" />
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground text-sm">Rows:</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                      className="border-border bg-card text-foreground focus:ring-ring cursor-pointer rounded border px-1.5 py-0.5 text-sm font-medium outline-none focus:ring-1"
-                    >
-                      {PAGE_SIZE_OPTIONS.map((size) => (
-                        <option key={size} value={size}>
-                          {size}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-    
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => fetchDocuments(pagination.page - 1, pageSize)}
-                    disabled={!pagination.hasPrevious}
-                    className={cn(
-                      'inline-flex cursor-pointer items-center gap-1 rounded-md p-2.5 text-xs font-medium transition-colors',
-                      pagination.hasPrevious
-                        ? 'text-foreground hover:bg-muted'
-                        : 'text-muted-foreground/40 cursor-not-allowed',
-                    )}
-                  >
-                    <MoveLeft className="h-4 w-4" />
-                    {/*Prev*/}
-                  </button>
-                  <span className="text-muted-foreground min-w-[60px] text-center text-xs">
-                    {pagination.page}/{pagination.totalPages}
-                  </span>
-                  <button
-                    onClick={() => fetchDocuments(pagination.page + 1, pageSize)}
-                    disabled={!pagination.hasNext}
-                    className={cn(
-                      'inline-flex cursor-pointer items-center gap-1 rounded-md p-2.5 text-xs font-medium transition-colors',
-                      pagination.hasNext
-                        ? 'text-foreground hover:bg-muted'
-                        : 'text-muted-foreground/40 cursor-not-allowed',
-                    )}
-                  >
-                    {/*Next*/}
-                    <MoveRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <DocumentToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          sort={sort}
+          onSortChange={setSort}
+          activeFilters={activeFilters}
+          onAddFilter={handleAddFilter}
+          onRemoveFilter={handleRemoveFilter}
+          availableFilterKeys={availableFilterKeys}
+          onRefresh={handleRefresh}
+          isRefreshing={isRefreshing}
+          searchInputRef={searchInputRef}
+        />
 
-        {/* Table */}
-        <div className="overflow-auto scrollbar-thin p-2">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 border-border border-b">
-                <th className="text-foreground w-5 border border-gray-300 px-4 py-2.5 text-center text-sm font-bold tracking-wider">
-                  Id
-                </th>
-                <th className="text-foreground border border-gray-300 px-4 py-2.5 text-center text-sm font-bold tracking-wider">
-                  Document
-                </th>
-                <th className="text-foreground border border-gray-300 px-4 py-2.5 text-center text-sm font-bold tracking-wider">
-                  Metadata
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {documents.map((doc) => (
-                <tr
-                  key={doc.id}
-                  className={cn(
-                    'border-border border-b last:border-b-0',
-                    'hover:bg-muted/30 transition-colors duration-150',
-                  )}
-                  onClick={() => handleDocumentClick(doc)}
-                >
-                  <td className="text-foreground/70 max-w-[180px] truncate border border-gray-300 px-4 py-3 font-mono text-xs">
-                    {doc.id}
-                  </td>
-                  <td className="text-foreground max-w-[400px] border border-gray-300 px-4 py-3">
-                    <p className="line-clamp-2 leading-relaxed">
-                      {doc.document}
-                    </p>
-                  </td>
-                  <td className="max-w-[250px] border border-gray-300 px-4 py-3 font-mono">
-                    <div className="truncate">
-                      {JSON.stringify(doc.metadata)}
-                    </div>
-                  </td>
-                </tr>
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto">
+          {error && (
+            <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
+              <p className="text-foreground text-[14px] font-medium">
+                Couldn&apos;t load documents
+              </p>
+              <p className="text-muted-foreground text-[13px]">{error}</p>
+              <button
+                type="button"
+                onClick={() => fetchDocuments(pagination.page, pageSize)}
+                className="border-border hover:bg-muted mt-2 rounded-md border px-3 py-1 text-[12px] transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {isLoading && !error && (
+            <div className="space-y-0 px-0 py-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="border-border border-b px-5 py-4">
+                  <div className="bg-muted mb-2 h-4 w-1/3 animate-pulse rounded" />
+                  <div className="bg-muted/60 mb-1 h-3 w-full animate-pulse rounded" />
+                  <div className="bg-muted/40 h-3 w-2/3 animate-pulse rounded" />
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
+
+          {showEmptyCollection && (
+            <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
+              <FileText className="text-muted-foreground h-6 w-6 opacity-50" />
+              <p className="text-foreground text-[14px] font-medium">
+                No documents
+              </p>
+              <p className="text-muted-foreground text-[13px]">
+                This collection doesn&apos;t contain any documents yet.
+              </p>
+            </div>
+          )}
+
+          {showEmptySearch && (
+            <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
+              <p className="text-foreground text-[14px] font-medium">
+                No matching documents
+              </p>
+              <p className="text-muted-foreground text-[13px]">
+                Try a different search or remove a filter.
+              </p>
+            </div>
+          )}
+
+          {!isLoading &&
+            !error &&
+            displayedDocuments.map((doc, i) => {
+              const globalIndex =
+                (pagination.page - 1) * pageSize + i;
+              return (
+                <DocumentRow
+                  key={doc.id}
+                  document={doc}
+                  index={globalIndex}
+                  isSelected={selectedDocument?.id === doc.id}
+                  isFocused={focusedIndex === i}
+                  onClick={() => handleDocumentSelect(doc)}
+                  onFocus={() => setFocusedIndex(i)}
+                />
+              );
+            })}
         </div>
+
+        {!error && (
+          <DocumentPagination
+            pagination={pagination}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+            onPageChange={(page) => fetchDocuments(page, pageSize)}
+          />
+        )}
       </div>
 
-      {openDocumentViewer && selectedDocument && (
-        <DocumentViewer
-          document={selectedDocument}
-          onClose={toggleDocumentViewer}
-        />
+      {selectedDocument && (
+        <>
+          <DocumentInspector
+            document={selectedDocument}
+            index={Math.max(0, selectedDocIndex)}
+            onClose={handleCloseInspector}
+            variant="panel"
+          />
+          <DocumentInspector
+            document={selectedDocument}
+            index={Math.max(0, selectedDocIndex)}
+            onClose={handleCloseInspector}
+            variant="overlay"
+          />
+        </>
       )}
     </div>
   );
