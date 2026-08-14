@@ -220,7 +220,10 @@ const DocumentPanel = () => {
           searchInputRef={searchInputRef}
         />
 
-        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-foreground/30">
+        <div
+          ref={listRef}
+          className="scrollbar-thumb-foreground/30 min-h-0 flex-1 scrollbar-thin overflow-y-auto"
+        >
           {error && (
             <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
               <p className="text-foreground text-[14px] font-medium">

@@ -10,7 +10,6 @@ import {
   Binary,
   Percent,
   ToggleLeft,
-  Circle,
   Hash,
   ListTree,
   Box,
@@ -138,7 +137,7 @@ const DashboardPanel = () => {
   }, 0);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-foreground/30">
+    <div className="scrollbar-thumb-foreground/30 flex h-full scrollbar-thin flex-col overflow-y-auto">
       <header className="border-border border-b px-6 py-5">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -218,7 +217,7 @@ const DashboardPanel = () => {
                     const TypeIcon = meta.icon;
 
                     let indexName = '—';
-                    let indexEnabled = false;
+                    // let indexEnabled = false;
                     if (primaryType) {
                       const indexes = Object.entries(primaryType[1]).filter(
                         ([, v]) => v !== null,
@@ -227,7 +226,7 @@ const DashboardPanel = () => {
                       indexName = enabled
                         ? enabled[0].replace(/_/g, ' ')
                         : (indexes[0]?.[0]?.replace(/_/g, ' ') ?? '—');
-                      indexEnabled = enabled?.[1]?.enabled ?? false;
+                      // indexEnabled = enabled?.[1]?.enabled ?? false;
                     }
 
                     const isInternal = keyName.startsWith('#');

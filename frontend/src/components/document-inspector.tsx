@@ -66,15 +66,15 @@ const DocumentInspector = ({
   const theme = useThemeStore((s) => s.theme);
 
   const title = getDocumentTitle(document, index);
-  const jsonPayload = JSON.stringify(
-    {
-      id: document.id,
-      document: document.document,
-      metadata: document.metadata,
-    },
-    null,
-    2,
-  );
+  // const jsonPayload = JSON.stringify(
+  //   {
+  //     id: document.id,
+  //     document: document.document,
+  //     metadata: document.metadata,
+  //   },
+  //   null,
+  //   2,
+  // );
   const metadataJson = JSON.stringify(document.metadata, null, 2);
   const vectorJson = JSON.stringify(document.embedding);
 
@@ -114,7 +114,7 @@ const DocumentInspector = ({
         </button>
       </div>
 
-      <div className="scrollbar-thin scrollbar-thumb-foreground/30 flex-1 overflow-y-auto px-4 py-4">
+      <div className="scrollbar-thumb-foreground/30 flex-1 scrollbar-thin overflow-y-auto px-4 py-4">
         <div className="space-y-6">
           <div className="flex items-start justify-between gap-3">
             <h2 className="text-foreground text-[14px] leading-snug font-medium">
@@ -155,7 +155,9 @@ const DocumentInspector = ({
                 >
                   <div className="text-foreground text-[13px] leading-relaxed break-words whitespace-pre-wrap">
                     {contentText || (
-                      <span className="text-muted-foreground italic">Empty</span>
+                      <span className="text-muted-foreground italic">
+                        Empty
+                      </span>
                     )}
                   </div>
                   {isContentLong && !contentExpanded && (
@@ -225,7 +227,7 @@ const DocumentInspector = ({
                   </span>
                   <CopyButton text={metadataJson} label="Copy metadata JSON" />
                 </div>
-                <div className="scrollbar-thin scrollbar-thumb-foreground/30 max-h-72 overflow-y-auto p-3 [&_.shiki]:!m-0 [&_.shiki]:!bg-transparent [&_.shiki]:!p-0 [&_.shiki>code]:!font-mono">
+                <div className="scrollbar-thumb-foreground/30 max-h-72 scrollbar-thin overflow-y-auto p-3 [&_.shiki]:!m-0 [&_.shiki]:!bg-transparent [&_.shiki]:!p-0 [&_.shiki>code]:!font-mono">
                   {jsonHtml ? (
                     <div dangerouslySetInnerHTML={{ __html: jsonHtml }} />
                   ) : (
@@ -270,7 +272,7 @@ const DocumentInspector = ({
                 </div>
 
                 <div
-                  className="flex h-9 items-end gap-px border-t border-border/60 px-3 py-1.5"
+                  className="border-border/60 flex h-9 items-end gap-px border-t px-3 py-1.5"
                   aria-hidden
                 >
                   {vectorPreview.map((value, i) => {
@@ -292,7 +294,7 @@ const DocumentInspector = ({
                 </div>
 
                 {showVector && (
-                  <div className="border-border/60 scrollbar-thin scrollbar-thumb-foreground/30 max-h-32 overflow-y-auto border-t px-3 py-2">
+                  <div className="border-border/60 scrollbar-thumb-foreground/30 max-h-32 scrollbar-thin overflow-y-auto border-t px-3 py-2">
                     <code className="text-muted-foreground font-mono text-[10px] leading-relaxed break-all">
                       [{document.embedding.map((v) => v.toFixed(4)).join(', ')}]
                     </code>

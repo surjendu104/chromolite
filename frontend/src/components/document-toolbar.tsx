@@ -117,7 +117,7 @@ const DocumentToolbar = ({
                     No metadata fields on this page
                   </p>
                 ) : !filterKey ? (
-                  <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-foreground/30">
+                  <div className="scrollbar-thumb-foreground/30 max-h-48 scrollbar-thin overflow-y-auto">
                     {filterKeys.map((key) => (
                       <button
                         key={key}
@@ -138,7 +138,7 @@ const DocumentToolbar = ({
                     >
                       ← {filterKey}
                     </button>
-                    <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-foreground/30">
+                    <div className="scrollbar-thumb-foreground/30 max-h-48 scrollbar-thin overflow-y-auto">
                       {filterValues.map((value) => (
                         <button
                           key={value}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, MotionConfig } from 'motion/react';
-import { Search, RefreshCw, X, Copy, Sun, Moon } from 'lucide-react';
+import { Search, RefreshCw, X, Sun, Moon } from 'lucide-react';
 import RightPanel from './components/right-panel';
 import Sidebar from './components/sidebar';
 import CommandPalette from './components/command-palette';

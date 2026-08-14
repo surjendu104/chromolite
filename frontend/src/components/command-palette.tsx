@@ -92,7 +92,10 @@ const CommandPalette = ({ onClose, commands }: CommandPaletteProps) => {
             className="text-foreground placeholder:text-muted-foreground w-full bg-transparent py-3 text-[13px] outline-none"
           />
         </div>
-        <ul className="max-h-64 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-foreground/30" role="listbox">
+        <ul
+          className="scrollbar-thumb-foreground/30 max-h-64 scrollbar-thin overflow-y-auto p-1"
+          role="listbox"
+        >
           {filtered.length === 0 ? (
             <li className="text-muted-foreground px-3 py-4 text-center text-[13px]">
               No commands found
