@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Search } from 'lucide-react';
+import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import type { Command } from '../hooks/use-command-palette';
 
@@ -59,16 +60,26 @@ const CommandPalette = ({ onClose, commands }: CommandPaletteProps) => {
   }, [filtered, selectedIndex, execute, onClose]);
 
   return (
-    <>
+    <motion.div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.12 }}
+    >
       <div
-        className="bg-foreground/20 fixed inset-0 z-50"
+        className="bg-foreground/20 absolute inset-0"
         onClick={onClose}
         aria-hidden
       />
-      <div
-        className="border-border bg-popover fixed top-[20%] left-1/2 z-50 w-full max-w-md -translate-x-1/2 rounded-lg border shadow-lg"
+      <motion.div
+        className="border-border bg-popover relative z-10 w-full max-w-md rounded-lg border shadow-lg"
         role="dialog"
         aria-label="Command menu"
+        initial={{ opacity: 0, y: 8, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="border-border flex items-center gap-2 border-b px-3">
           <Search className="text-muted-foreground h-4 w-4 shrink-0" />
@@ -81,14 +92,18 @@ const CommandPalette = ({ onClose, commands }: CommandPaletteProps) => {
             className="text-foreground placeholder:text-muted-foreground w-full bg-transparent py-3 text-[13px] outline-none"
           />
         </div>
-        <ul className="max-h-64 overflow-y-auto p-1" role="listbox">
+        <ul className="max-h-64 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-foreground/30" role="listbox">
           {filtered.length === 0 ? (
             <li className="text-muted-foreground px-3 py-4 text-center text-[13px]">
               No commands found
             </li>
           ) : (
             filtered.map((cmd, i) => (
-              <li key={cmd.id} role="option" aria-selected={i === selectedIndex}>
+              <li
+                key={cmd.id}
+                role="option"
+                aria-selected={i === selectedIndex}
+              >
                 <button
                   type="button"
                   onClick={() => execute(cmd)}
@@ -111,8 +126,8 @@ const CommandPalette = ({ onClose, commands }: CommandPaletteProps) => {
             ))
           )}
         </ul>
-      </div>
-    </>
+      </motion.div>
+    </motion.div>
   );
 };
 

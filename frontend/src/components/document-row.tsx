@@ -36,12 +36,13 @@ const DocumentRow = ({
       className={cn(
         'group border-border hover:bg-muted/40 flex w-full cursor-pointer flex-col gap-1 border-b px-5 py-3 text-left transition-colors',
         'focus-visible:ring-ring focus-visible:ring-1 focus-visible:outline-none',
-        isSelected && 'bg-muted/60 border-l-accent-interactive border-l-2 pl-[18px]',
+        isSelected &&
+          'bg-muted/60 border-l-accent-interactive border-l-2 pl-[18px]',
         isFocused && !isSelected && 'bg-muted/30',
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="text-foreground text-[14px] font-medium leading-snug">
+        <span className="text-foreground text-[14px] leading-snug font-medium">
           {title}
         </span>
       </div>

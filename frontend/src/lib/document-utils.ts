@@ -45,7 +45,9 @@ export function getMetadataPreview(
     }
   }
 
-  return entries.slice(0, maxFields).map(([, value]) => formatMetadataValue(value));
+  return entries
+    .slice(0, maxFields)
+    .map(([, value]) => formatMetadataValue(value));
 }
 
 export function getDocumentTitle(doc: Document, index: number): string {
@@ -58,8 +60,7 @@ export function getDocumentTitle(doc: Document, index: number): string {
 export function getDocumentPreview(doc: Document, maxLength = 140): string {
   const content = doc.document.trim();
   const lines = content.split('\n').filter(Boolean);
-  const body =
-    lines.length > 1 ? lines.slice(1).join(' ').trim() : content;
+  const body = lines.length > 1 ? lines.slice(1).join(' ').trim() : content;
   if (body.length <= maxLength) return body;
   return `${body.slice(0, maxLength)}…`;
 }
@@ -78,9 +79,7 @@ export function sortDocuments(
     case 'id-desc':
       return sorted.sort((a, b) => b.id.localeCompare(a.id));
     case 'content-asc':
-      return sorted.sort((a, b) =>
-        a.document.localeCompare(b.document),
-      );
+      return sorted.sort((a, b) => a.document.localeCompare(b.document));
     default:
       return sorted;
   }

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Search,
   Filter,
@@ -105,13 +106,18 @@ const DocumentToolbar = ({
                 className="fixed inset-0 z-10"
                 onClick={() => setFilterOpen(false)}
               />
-              <div className="border-border bg-popover text-popover-foreground absolute top-full right-0 z-20 mt-1 w-56 rounded-lg border p-2 shadow-md">
+              <motion.div
+                className="border-border bg-popover text-popover-foreground absolute top-full right-0 z-20 mt-1 w-56 rounded-lg border p-2 shadow-md"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+              >
                 {filterKeys.length === 0 ? (
                   <p className="text-muted-foreground px-2 py-1.5 text-[12px]">
                     No metadata fields on this page
                   </p>
                 ) : !filterKey ? (
-                  <div className="max-h-48 overflow-y-auto">
+                  <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-foreground/30">
                     {filterKeys.map((key) => (
                       <button
                         key={key}
@@ -132,13 +138,13 @@ const DocumentToolbar = ({
                     >
                       ← {filterKey}
                     </button>
-                    <div className="max-h-48 overflow-y-auto">
+                    <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-foreground/30">
                       {filterValues.map((value) => (
                         <button
                           key={value}
                           type="button"
                           onClick={() => handleAddFilter(filterKey, value)}
-                          className="hover:bg-muted font-mono w-full rounded-md px-2 py-1.5 text-left text-[12px]"
+                          className="hover:bg-muted w-full rounded-md px-2 py-1.5 text-left font-mono text-[12px]"
                         >
                           {value}
                         </button>
@@ -146,7 +152,7 @@ const DocumentToolbar = ({
                     </div>
                   </div>
                 )}
-              </div>
+              </motion.div>
             </>
           )}
         </div>
@@ -170,7 +176,12 @@ const DocumentToolbar = ({
                 className="fixed inset-0 z-10"
                 onClick={() => setSortOpen(false)}
               />
-              <div className="border-border bg-popover absolute top-full right-0 z-20 mt-1 w-44 rounded-lg border p-1 shadow-md">
+              <motion.div
+                className="border-border bg-popover absolute top-full right-0 z-20 mt-1 w-44 rounded-lg border p-1 shadow-md"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+              >
                 {SORT_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
@@ -181,13 +192,14 @@ const DocumentToolbar = ({
                     }}
                     className={cn(
                       'hover:bg-muted w-full rounded-md px-2 py-1.5 text-left text-[12px]',
-                      sort === opt.value && 'text-accent-interactive font-medium',
+                      sort === opt.value &&
+                        'text-accent-interactive font-medium',
                     )}
                   >
                     {opt.label}
                   </button>
                 ))}
-              </div>
+              </motion.div>
             </>
           )}
         </div>
@@ -208,23 +220,30 @@ const DocumentToolbar = ({
 
       {(activeFilters.length > 0 || filterKeys.length > 0) && (
         <div className="flex flex-wrap items-center gap-1.5">
-          {activeFilters.map((filter) => (
-            <span
-              key={filter.key}
-              className="border-border bg-muted inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]"
-            >
-              <span className="text-muted-foreground">{filter.key}:</span>
-              <span className="font-medium">{filter.value}</span>
-              <button
-                type="button"
-                onClick={() => onRemoveFilter(filter.key)}
-                aria-label={`Remove filter ${filter.key}`}
-                className="text-muted-foreground hover:text-foreground ml-0.5"
+          <AnimatePresence initial={false}>
+            {activeFilters.map((filter) => (
+              <motion.span
+                key={filter.key}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.14 }}
+                className="border-border bg-muted inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]"
               >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
+                <span className="text-muted-foreground">{filter.key}:</span>
+                <span className="font-medium">{filter.value}</span>
+                <button
+                  type="button"
+                  onClick={() => onRemoveFilter(filter.key)}
+                  aria-label={`Remove filter ${filter.key}`}
+                  className="text-muted-foreground hover:text-foreground ml-0.5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </motion.span>
+            ))}
+          </AnimatePresence>
           {filterKeys.length > 0 && (
             <button
               type="button"

@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
+import { AnimatePresence } from 'motion/react';
 import { FileText } from 'lucide-react';
 import { getDocuments } from '../../service/document.service';
 import { getCollectionByName } from '../../service/collection.service';
@@ -14,9 +15,7 @@ import {
   type SortOption,
 } from '../../lib/document-utils';
 import CollectionHeader from '../collection-header';
-import DocumentToolbar, {
-  type ActiveFilter,
-} from '../document-toolbar';
+import DocumentToolbar, { type ActiveFilter } from '../document-toolbar';
 import DocumentRow from '../document-row';
 import DocumentPagination from '../document-pagination';
 import DocumentInspector from '../document-inspector';
@@ -35,7 +34,9 @@ const DocumentPanel = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sort, setSort] = useState<SortOption>('default');
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(
+    null,
+  );
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -164,9 +165,7 @@ const DocumentPanel = () => {
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setFocusedIndex((i) =>
-          Math.min(i + 1, displayedDocuments.length - 1),
-        );
+        setFocusedIndex((i) => Math.min(i + 1, displayedDocuments.length - 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setFocusedIndex((i) => Math.max(i - 1, 0));
@@ -197,7 +196,10 @@ const DocumentPanel = () => {
   const showEmptySearch =
     hasFilters && displayedDocuments.length === 0 && !isLoading;
   const showEmptyCollection =
-    !hasFilters && pagination.total === 0 && documents.length === 0 && !isLoading;
+    !hasFilters &&
+    pagination.total === 0 &&
+    documents.length === 0 &&
+    !isLoading;
 
   return (
     <div className="flex h-full min-h-0">
@@ -218,7 +220,7 @@ const DocumentPanel = () => {
           searchInputRef={searchInputRef}
         />
 
-        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto">
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-foreground/30">
           {error && (
             <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
               <p className="text-foreground text-[14px] font-medium">
@@ -273,8 +275,7 @@ const DocumentPanel = () => {
           {!isLoading &&
             !error &&
             displayedDocuments.map((doc, i) => {
-              const globalIndex =
-                (pagination.page - 1) * pageSize + i;
+              const globalIndex = (pagination.page - 1) * pageSize + i;
               return (
                 <DocumentRow
                   key={doc.id}
@@ -299,22 +300,28 @@ const DocumentPanel = () => {
         )}
       </div>
 
-      {selectedDocument && (
-        <>
+      <AnimatePresence>
+        {selectedDocument && (
           <DocumentInspector
+            key="panel"
             document={selectedDocument}
             index={Math.max(0, selectedDocIndex)}
             onClose={handleCloseInspector}
             variant="panel"
           />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedDocument && (
           <DocumentInspector
+            key="overlay"
             document={selectedDocument}
             index={Math.max(0, selectedDocIndex)}
             onClose={handleCloseInspector}
             variant="overlay"
           />
-        </>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };

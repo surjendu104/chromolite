@@ -11,8 +11,13 @@ type SidebarProps = {
 
 const Sidebar = ({ onOpenCommandPalette }: SidebarProps) => {
   const { collapsed } = useSidebarStore();
-  const { collections, setCollections, setActiveCollection, activeCollection, activeCollectionDetails } =
-    useCollectionStore();
+  const {
+    collections,
+    setCollections,
+    setActiveCollection,
+    activeCollection,
+    activeCollectionDetails,
+  } = useCollectionStore();
   const { setActiveTab } = useSidebarStore();
 
   useEffect(() => {
@@ -20,7 +25,10 @@ const Sidebar = ({ onOpenCommandPalette }: SidebarProps) => {
       try {
         const responseData = await getCollectionsApi();
         setCollections(responseData);
-        if (responseData.length > 0 && !useCollectionStore.getState().activeCollection) {
+        if (
+          responseData.length > 0 &&
+          !useCollectionStore.getState().activeCollection
+        ) {
           setActiveCollection(responseData[0]);
         }
       } catch (error) {
@@ -38,18 +46,21 @@ const Sidebar = ({ onOpenCommandPalette }: SidebarProps) => {
   return (
     <aside
       className={cn(
-        'bg-sidebar text-sidebar-foreground relative flex h-full shrink-0 flex-col overflow-hidden border-sidebar-border border-r',
+        'bg-sidebar text-sidebar-foreground border-sidebar-border relative flex h-full shrink-0 flex-col overflow-hidden border-r',
         'transition-[width] duration-200 ease-out',
         collapsed ? 'w-0 border-0' : 'w-[240px]',
       )}
     >
       <div
         className={cn(
-          'flex h-12 shrink-0 items-center px-4',
+          'flex h-12 shrink-0 items-center gap-2 px-4',
           collapsed && 'opacity-0',
         )}
       >
-        <span className="text-[15px] font-semibold tracking-tight">Chromolite</span>
+        <span className="bg-accent-interactive h-2 w-2 rounded-[3px]" />
+        <span className="text-[15px] font-semibold tracking-tight">
+          Chromolite
+        </span>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 pb-2">
@@ -62,7 +73,11 @@ const Sidebar = ({ onOpenCommandPalette }: SidebarProps) => {
           Collections
         </div>
 
-        <ul className="flex flex-col gap-0.5" role="listbox" aria-label="Collections">
+        <ul
+          className="flex flex-col gap-0.5"
+          role="listbox"
+          aria-label="Collections"
+        >
           {collections.map((collection) => {
             const isActive = activeCollection?.id === collection.id;
             const count =
@@ -86,7 +101,9 @@ const Sidebar = ({ onOpenCommandPalette }: SidebarProps) => {
                   )}
                 >
                   <Database className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                  <span className="min-w-0 flex-1 truncate">{collection.name}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {collection.name}
+                  </span>
                   {count !== null && (
                     <span
                       className={cn(
@@ -117,8 +134,9 @@ const Sidebar = ({ onOpenCommandPalette }: SidebarProps) => {
         >
           <Command className="h-3.5 w-3.5" />
           <span className="flex-1 text-left">Command menu</span>
-          <kbd className="border-border bg-muted rounded px-1 py-0.5 font-mono text-[10px]">
-            ⌘K
+          <kbd className="border-border bg-muted inline-flex items-center justify-center gap-0.5 rounded px-1 py-0.5 font-mono text-[12px]">
+            <Command className="h-3 w-3" />
+            <span>K</span>
           </kbd>
         </button>
       </div>

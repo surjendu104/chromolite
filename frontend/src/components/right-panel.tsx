@@ -1,7 +1,8 @@
-import { LayoutGrid, PanelLeft, FileText } from 'lucide-react';
+import { LayoutGrid, PanelLeft, FileText, Sun, Moon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSidebarStore } from '../store/sidebar.store';
 import { useCollectionStore } from '../store/collection.store';
+import { useThemeStore } from '../store/theme.store';
 import DashboardPanel from './panels/dashboard';
 import DocumentPanel from './panels/documents';
 
@@ -13,6 +14,8 @@ const TABS = [
 const RightPanel = () => {
   const { activeTab, setActiveTab, toggleCollapsed } = useSidebarStore();
   const activeCollection = useCollectionStore((s) => s.activeCollection);
+  const theme = useThemeStore((s) => s.theme);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
 
   return (
     <main className="bg-background relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -53,6 +56,22 @@ const RightPanel = () => {
             </div>
           </>
         )}
+
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label="Toggle theme"
+          title={
+            theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+          }
+          className="text-muted-foreground hover:text-foreground hover:bg-muted ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden">
