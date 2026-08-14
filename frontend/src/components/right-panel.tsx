@@ -6,8 +6,8 @@ import DocumentPanel from './panels/documents';
 
 const TABS = [
   {
-    id: 'dashboard',
-    name: 'Dashboard',
+    id: 'overview',
+    name: 'Overview',
     icon: LayoutDashboard,
   },
   {
@@ -21,9 +21,9 @@ const RightPanel = () => {
   const { activeTab, setActiveTab, toggleCollapsed } = useSidebarStore();
 
   return (
-    <main className="bg-background border-sidebar-border mt-2.5 flex-1 overflow-y-auto rounded-tl-xl border-t-2 border-l-2 p-1 pt-2.5 shadow-sm">
+    <main className="bg-background relative mt-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-background absolute top-3 w-full rounded-tl-xl p-4">
+      <div className="bg-background relative w-full shrink-0 rounded-tl-xl px-4 py-2">
         <div className={'bg-background flex w-full items-center gap-2'}>
           <button
             onClick={toggleCollapsed}
@@ -60,8 +60,8 @@ const RightPanel = () => {
         </div>
       </div>
 
-      <div className="mt-10 flex-1">
-        {activeTab === 'dashboard' && <DashboardPanel />}
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {activeTab === 'overview' && <DashboardPanel />}
         {activeTab === 'documents' && <DocumentPanel />}
       </div>
     </main>

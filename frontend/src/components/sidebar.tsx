@@ -28,9 +28,9 @@ const Sidebar = () => {
   return (
     <aside
       className={cn(
-        'group/sidebar bg-sidebar text-sidebar-foreground relative flex h-screen flex-col',
+        'group/sidebar bg-sidebar text-sidebar-foreground relative flex h-full shrink-0 flex-col overflow-hidden border-sidebar-border border-r-2 shadow-sm',
         'transition-[width] duration-300 ease-in-out',
-        collapsed ? 'w-2.5 border-0' : 'w-60',
+        collapsed ? 'w-0 border-0' : 'w-60',
       )}
     >
       {/* Header */}

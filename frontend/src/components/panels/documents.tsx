@@ -24,7 +24,9 @@ const DocumentPanel = () => {
   const pagination = useCollectionStore((s) => s.pagination);
   const setPagination = useCollectionStore((s) => s.setPagination);
   const [pageSize, setPageSize] = useState(10);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(
+    null,
+  );
   const [openDocumentViewer, setOpenDocumentViewer] = useState(false);
 
   const toggleDocumentViewer = () => {
@@ -38,6 +40,7 @@ const DocumentPanel = () => {
 
   const fetchDocuments = useCallback(
     async (page: number, size: number) => {
+      if (!activeCollection?.name) return;
       try {
         const response = await getDocuments(activeCollection.name, page, size);
         setDocuments(response.data);
@@ -80,10 +83,10 @@ const DocumentPanel = () => {
   const end = Math.min(pagination.page * pageSize, pagination.total);
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden">
-      <div className="flex flex-1 flex-col overflow-y-auto p-4">
+    <div className="flex h-full flex-col overflow-y-auto">
+      <div className="flex flex-1 flex-col overflow-y-auto">
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className=" flex items-center justify-between p-4">
           <div className="flex items-baseline justify-start gap-2 text-sm font-medium">
             <span className="text-foreground flex items-center gap-1">
               <Database className="h-4 w-4" />
@@ -93,84 +96,86 @@ const DocumentPanel = () => {
               <FileText className="h-4 w-4" />
               {pagination.total}
             </span>
-          </div>
-
-          <div className="h-fit w-fit">
             <button
               className={cn(
                 'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-sm text-sm',
                 'hover:bg-sidebar-accent',
               )}
             >
-              <RefreshCcw onClick={() => fetchDocuments(1, pageSize)}  className="h-4 w-4" />
+              <RefreshCcw
+                onClick={() => fetchDocuments(1, pageSize)}
+                className="h-4 w-4"
+              />
             </button>
+          </div>
+
+          <div className="h-fit w-fit flex gap-2 justify-center items-center">
+            {/* Pagination */}
+            {pagination.total > 0 && (
+              <div className=" flex items-center justify-end px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <span className="text-muted-foreground text-sm">
+                    {start}–{end} of {pagination.total}
+                  </span>
+                  <div className="bg-border h-3.5 w-px" />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground text-sm">Rows:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      className="border-border bg-card text-foreground focus:ring-ring cursor-pointer rounded border px-1.5 py-0.5 text-sm font-medium outline-none focus:ring-1"
+                    >
+                      {PAGE_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+    
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => fetchDocuments(pagination.page - 1, pageSize)}
+                    disabled={!pagination.hasPrevious}
+                    className={cn(
+                      'inline-flex cursor-pointer items-center gap-1 rounded-md p-2.5 text-xs font-medium transition-colors',
+                      pagination.hasPrevious
+                        ? 'text-foreground hover:bg-muted'
+                        : 'text-muted-foreground/40 cursor-not-allowed',
+                    )}
+                  >
+                    <MoveLeft className="h-4 w-4" />
+                    {/*Prev*/}
+                  </button>
+                  <span className="text-muted-foreground min-w-[60px] text-center text-xs">
+                    {pagination.page}/{pagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() => fetchDocuments(pagination.page + 1, pageSize)}
+                    disabled={!pagination.hasNext}
+                    className={cn(
+                      'inline-flex cursor-pointer items-center gap-1 rounded-md p-2.5 text-xs font-medium transition-colors',
+                      pagination.hasNext
+                        ? 'text-foreground hover:bg-muted'
+                        : 'text-muted-foreground/40 cursor-not-allowed',
+                    )}
+                  >
+                    {/*Next*/}
+                    <MoveRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Pagination */}
-        {pagination.total > 0 && (
-          <div className="border-border bg-muted/30 flex items-center justify-end border-t px-4 py-2.5">
-            <div className="flex items-center gap-3">
-              <span className="text-muted-foreground text-sm">
-                {start}–{end} of {pagination.total}
-              </span>
-              <div className="bg-border h-3.5 w-px" />
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground text-sm">Rows:</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border-border bg-card text-foreground focus:ring-ring cursor-pointer rounded border px-1.5 py-0.5 text-sm font-medium outline-none focus:ring-1"
-                >
-                  {PAGE_SIZE_OPTIONS.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => fetchDocuments(pagination.page - 1, pageSize)}
-                disabled={!pagination.hasPrevious}
-                className={cn(
-                  'inline-flex cursor-pointer items-center gap-1 rounded-md p-2.5 text-xs font-medium transition-colors',
-                  pagination.hasPrevious
-                    ? 'text-foreground hover:bg-muted'
-                    : 'text-muted-foreground/40 cursor-not-allowed',
-                )}
-              >
-                <MoveLeft className="h-4 w-4" />
-                {/*Prev*/}
-              </button>
-              <span className="text-muted-foreground min-w-[60px] text-center text-xs">
-                {pagination.page}/{pagination.totalPages}
-              </span>
-              <button
-                onClick={() => fetchDocuments(pagination.page + 1, pageSize)}
-                disabled={!pagination.hasNext}
-                className={cn(
-                  'inline-flex cursor-pointer items-center gap-1 rounded-md p-2.5 text-xs font-medium transition-colors',
-                  pagination.hasNext
-                    ? 'text-foreground hover:bg-muted'
-                    : 'text-muted-foreground/40 cursor-not-allowed',
-                )}
-              >
-                {/*Next*/}
-                <MoveRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Table */}
-        <div className="border-border overflow-hidden rounded-lg border">
+        <div className="overflow-auto scrollbar-thin p-2">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/50 border-border border-b">
-                <th className="text-foreground w-[20px] border border-gray-300 px-4 py-2.5 text-center text-sm font-bold tracking-wider">
+                <th className="text-foreground w-5 border border-gray-300 px-4 py-2.5 text-center text-sm font-bold tracking-wider">
                   Id
                 </th>
                 <th className="text-foreground border border-gray-300 px-4 py-2.5 text-center text-sm font-bold tracking-wider">
@@ -199,7 +204,7 @@ const DocumentPanel = () => {
                       {doc.document}
                     </p>
                   </td>
-                  <td className="max-w-[250px] border border-gray-300 px-4 py-3">
+                  <td className="max-w-[250px] border border-gray-300 px-4 py-3 font-mono">
                     <div className="truncate">
                       {JSON.stringify(doc.metadata)}
                     </div>
