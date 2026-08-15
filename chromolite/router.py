@@ -5,7 +5,7 @@ from chromolite.documents import router as documents_router
 
 # from chromolite.query import router as query_router
 
-router = APIRouter(prefix="")
+router = APIRouter(prefix="/api")
 
 router.include_router(collection_router)
 router.include_router(documents_router)

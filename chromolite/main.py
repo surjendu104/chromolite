@@ -10,6 +10,7 @@ app = FastAPI(title="chromolite-server")
 
 
 origins = [
+    "*",
     "http://localhost:5173",
     "http://localhost:48731",
 ]
@@ -25,6 +26,11 @@ app.add_middleware(
 app.include_router(router=router)
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 # mount frontend build
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -33,8 +39,3 @@ app.mount(
     StaticFiles(directory=STATIC_DIR, html=True),
     name="frontend",
 )
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}

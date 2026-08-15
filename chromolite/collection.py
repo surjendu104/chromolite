@@ -55,10 +55,10 @@ def get_collection(collection_name: str):
 
     print(collection.configuration)
     print(type(collection.configuration))
-    
+
     print(collection.configuration_json)
     print(type(collection.configuration_json))
-    
+
     print(collection.schema)
     print(type(collection.schema))
 
