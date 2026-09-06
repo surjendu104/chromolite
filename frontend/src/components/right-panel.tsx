@@ -13,6 +13,7 @@ import { useCollectionStore } from '../store/collection.store';
 import { useThemeStore } from '../store/theme.store';
 import DashboardPanel from './panels/dashboard';
 import DocumentPanel from './panels/documents';
+import DuplicatesPanel from './panels/duplicates-panel';
 import EmbeddingsPanel from './panels/embeddings-panel';
 import NeighborsPanel from './panels/neighbors-panel';
 import OutliersPanel from './panels/outliers-panel';
@@ -136,12 +137,14 @@ export const RightPanel = ({ onOpenCommandPalette }: RightPanelProps) => {
             {activeTab === 'similarity' && <SimilarityPanel />}
             {activeTab === 'neighbors' && <NeighborsPanel />}
             {activeTab === 'outliers' && <OutliersPanel />}
+            {activeTab === 'duplicates' && <DuplicatesPanel />}
             {activeTab !== 'overview' &&
               activeTab !== 'documents' &&
               activeTab !== 'embeddings' &&
               activeTab !== 'similarity' &&
               activeTab !== 'neighbors' &&
-              activeTab !== 'outliers' && <AnalyticsView tab={activeTab} />}
+              activeTab !== 'outliers' &&
+              activeTab !== 'duplicates' && <AnalyticsView tab={activeTab} />}
           </>
         ) : (
           <div className="flex h-full items-center justify-center p-6">

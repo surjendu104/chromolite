@@ -2,6 +2,7 @@ import type {
   AnalysisResponse,
   CollectionHealthResult,
   CollectionSummary,
+  DuplicateDetectionResult,
   KnnDensityResult,
   MetricDefinition,
   NeighborInfo,
@@ -164,6 +165,28 @@ export const getOutliers = async (
   if (!res.ok) {
     throw new Error(
       `Failed to load outlier detection for ${collectionName}: ${res.statusText}`,
+    );
+  }
+  return res.json();
+};
+
+export const getDuplicates = async (
+  collectionName: string,
+  threshold: number = 0.98,
+  maxSamples: number = 10000,
+  randomSeed: number = 42,
+): Promise<AnalysisResponse<DuplicateDetectionResult>> => {
+  const params = new URLSearchParams({
+    threshold: String(threshold),
+    max_samples: String(maxSamples),
+    random_seed: String(randomSeed),
+  });
+  const res = await fetch(
+    `${API_BASE}/analysis/${encodeURIComponent(collectionName)}/duplicates?${params}`,
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Failed to load duplicate detection for ${collectionName}: ${res.statusText}`,
     );
   }
   return res.json();

@@ -10,6 +10,7 @@ from typing import Any
 
 from chromadb.api.models.Collection import Collection
 
+from chromolite.analysis.duplicates import compute_duplicates
 from chromolite.analysis.extractor import (
     ExtractedVectorBatch,
     extract_vector_batch,
@@ -19,6 +20,7 @@ from chromolite.analysis.models import (
     AnalysisResponse,
     AnalysisStatus,
     CollectionHealthResult,
+    DuplicateDetectionResult,
     KnnDensityResult,
     MetricDefinition,
     NeighborInfo,
@@ -165,6 +167,15 @@ class AnalysisService:
                 interpretation="Detects peripheral vectors, corrupt embeddings, or anomalous data points exceeding specified quantile thresholds.",
             )
         )
+        self.register_metric(
+            MetricDefinition(
+                id="duplicate_detection",
+                name="Duplicate & Redundancy Detection",
+                description="Identifies identical embedding vectors and near-duplicate clusters exceeding specified cosine similarity thresholds.",
+                formula="cos(u, v) >= threshold (0.99, 0.98, 0.95)",
+                interpretation="Measures collection redundancy, duplicates, and near-identical vectors impacting retrieval diversity and memory.",
+            )
+        )
 
     def get_projection(
         self,
@@ -226,6 +237,25 @@ class AnalysisService:
             collection_name=collection_name,
             metric_id=f"outliers_{method}_q{threshold_quantile}_k{k}",
             compute_fn=compute_outliers,
+            parameters=params,
+            sampling=sampling,
+        )
+
+    def get_duplicates(
+        self,
+        collection_name: str,
+        threshold: float = 0.98,
+        parameters: dict[str, Any] | None = None,
+        sampling: SamplingConfig | None = None,
+    ) -> AnalysisResponse[DuplicateDetectionResult]:
+        params = {
+            **(parameters or {}),
+            "threshold": threshold,
+        }
+        return self.execute_analysis(
+            collection_name=collection_name,
+            metric_id=f"duplicates_t{threshold}",
+            compute_fn=compute_duplicates,
             parameters=params,
             sampling=sampling,
         )

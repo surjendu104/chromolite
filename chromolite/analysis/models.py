@@ -253,3 +253,37 @@ class OutlierDetectionResult(BaseModel):
     outliers_count: int
     outlier_rate: float
     interpretation: str
+
+
+class DuplicateMember(BaseModel):
+    """Individual vector belonging to a duplicate/near-duplicate cluster."""
+
+    id: str
+    similarity_to_primary: float
+    document: str | None = None
+    metadata: dict[str, Any] | None = None
+    norm: float = 1.0
+
+
+class DuplicateGroup(BaseModel):
+    """Cluster of redundant identical or near-duplicate embeddings."""
+
+    group_id: str
+    is_exact: bool
+    min_similarity: float
+    member_count: int
+    members: list[DuplicateMember]
+
+
+class DuplicateDetectionResult(BaseModel):
+    """Collection-wide duplicate & near-duplicate detection per Phase 7."""
+
+    threshold: float
+    exact_duplicate_count: int
+    exact_group_count: int
+    near_duplicate_count: int
+    near_group_count: int
+    total_redundant_vectors: int
+    redundancy_rate: float
+    groups: list[DuplicateGroup]
+    interpretation: str

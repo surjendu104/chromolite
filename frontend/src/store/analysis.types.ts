@@ -198,3 +198,31 @@ export interface OutlierDetectionResult {
   outlier_rate: number;
   interpretation: string;
 }
+
+export interface DuplicateMember {
+  id: string;
+  similarity_to_primary: number;
+  document?: string | null;
+  metadata?: Record<string, unknown> | null;
+  norm: number;
+}
+
+export interface DuplicateGroup {
+  group_id: string;
+  is_exact: boolean;
+  min_similarity: number;
+  member_count: number;
+  members: DuplicateMember[];
+}
+
+export interface DuplicateDetectionResult {
+  threshold: number;
+  exact_duplicate_count: number;
+  exact_group_count: number;
+  near_duplicate_count: number;
+  near_group_count: number;
+  total_redundant_vectors: number;
+  redundancy_rate: number;
+  groups: DuplicateGroup[];
+  interpretation: string;
+}

@@ -6,6 +6,7 @@ from chromolite.analysis.models import (
     AnalysisResponse,
     CollectionHealthResult,
     CollectionSummary,
+    DuplicateDetectionResult,
     KnnDensityResult,
     MetricDefinition,
     NeighborInfo,
@@ -196,6 +197,31 @@ def get_outliers(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to detect outliers for '{collection_name}': {exc}",
+        ) from exc
+
+
+@router.get(
+    "/{collection_name}/duplicates",
+    response_model=AnalysisResponse[DuplicateDetectionResult],
+)
+def get_duplicates(
+    collection_name: str,
+    threshold: float = Query(0.98, ge=0.85, le=0.999),
+    max_samples: int = Query(10000, ge=10, le=50000),
+    random_seed: int = Query(42),
+):
+    """Detect exact duplicate vectors and near-duplicate clusters exceeding cosine similarity threshold."""
+    try:
+        sampling = SamplingConfig(max_samples=max_samples, random_seed=random_seed)
+        return analysis_service.get_duplicates(
+            collection_name=collection_name,
+            threshold=threshold,
+            sampling=sampling,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to detect duplicates for '{collection_name}': {exc}",
         ) from exc
 
 
