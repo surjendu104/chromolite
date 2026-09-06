@@ -322,3 +322,62 @@ class ClusteringResult(BaseModel):
     quality: ClusterQualityMetrics
     distance_metric: str = "cosine"
     interpretation: str
+
+
+class CategoryStats(BaseModel):
+    """Embedding distribution metrics for an individual categorical metadata value."""
+
+    name: str
+    count: int
+    percentage: float
+    mean_distance_to_centroid: float
+    norm_mean: float
+
+
+class NumericFieldStats(BaseModel):
+    """Statistical distribution & correlation metrics for a numeric metadata field."""
+
+    name: str
+    stats: DistributionStats
+    norm_correlation: float | None = None
+    density_correlation: float | None = None
+
+
+class MetadataAnalysisResult(BaseModel):
+    """Metadata ↔ embedding manifold correlation per Phase 10."""
+
+    field_name: str
+    field_type: str  # "categorical", "numeric"
+    total_vectors_with_field: int
+    coverage_rate: float
+    unique_values_count: int
+    categories: list[CategoryStats] | None = None
+    cluster_purity: float | None = None
+    normalized_mutual_information: float | None = None
+    numeric_stats: NumericFieldStats | None = None
+    interpretation: str
+
+
+class TimeWindowStats(BaseModel):
+    """Embedding centroid & norm statistics within a specific temporal window."""
+
+    window_label: str
+    start_time: str
+    end_time: str
+    vector_count: int
+    centroid_drift_from_previous: float | None = None
+    mean_norm: float
+    mean_internal_similarity: float | None = None
+
+
+class TemporalDriftResult(BaseModel):
+    """Temporal embedding space dynamics & centroid drift per Phase 11."""
+
+    timestamp_field: str
+    granularity: str  # "day", "week", "month", "quarter", "year"
+    total_windows: int
+    windows: list[TimeWindowStats]
+    mean_consecutive_drift: float
+    max_drift_window: str | None = None
+    max_drift_value: float | None = None
+    interpretation: str

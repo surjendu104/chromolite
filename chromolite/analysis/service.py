@@ -16,6 +16,10 @@ from chromolite.analysis.extractor import (
     ExtractedVectorBatch,
     extract_vector_batch,
 )
+from chromolite.analysis.metadata import (
+    compute_metadata_analysis,
+    compute_temporal_drift,
+)
 from chromolite.analysis.models import (
     AnalysisMethod,
     AnalysisResponse,
@@ -24,12 +28,14 @@ from chromolite.analysis.models import (
     CollectionHealthResult,
     DuplicateDetectionResult,
     KnnDensityResult,
+    MetadataAnalysisResult,
     MetricDefinition,
     NeighborInfo,
     OutlierDetectionResult,
     ProjectionResult,
     SamplingConfig,
     SimilarityDistributionResult,
+    TemporalDriftResult,
 )
 from chromolite.analysis.neighbors import (
     compute_knn_and_density,
@@ -187,6 +193,24 @@ class AnalysisService:
                 interpretation="Characterizes topic partitions, semantic clusters, cohesion, and inter-cluster separation.",
             )
         )
+        self.register_metric(
+            MetricDefinition(
+                id="metadata_analysis",
+                name="Metadata & Semantic Alignment Analysis",
+                description="Evaluates category dispersion, cluster purity, and Normalized Mutual Information (NMI) against vector clusters.",
+                formula="Purity = (1/N) sum_k max_c |C_k cap S_c|",
+                interpretation="Quantifies whether metadata labels align with original vector space geometry.",
+            )
+        )
+        self.register_metric(
+            MetricDefinition(
+                id="temporal_drift",
+                name="Temporal Centroid & Manifold Drift",
+                description="Measures embedding centroid drift across chronological time windows (day, week, month, quarter, year).",
+                formula="drift(t, t+1) = dist(C_t, C_{t+1})",
+                interpretation="Identifies semantic drift, topic shifts, and temporal evolution in embeddings over time.",
+            )
+        )
 
     def get_projection(
         self,
@@ -288,6 +312,46 @@ class AnalysisService:
             collection_name=collection_name,
             metric_id=f"clustering_{algorithm}_k{k}",
             compute_fn=compute_clustering,
+            parameters=params,
+            sampling=sampling,
+        )
+
+    def get_metadata_analysis(
+        self,
+        collection_name: str,
+        field_name: str,
+        parameters: dict[str, Any] | None = None,
+        sampling: SamplingConfig | None = None,
+    ) -> AnalysisResponse[MetadataAnalysisResult]:
+        params = {
+            **(parameters or {}),
+            "field_name": field_name,
+        }
+        return self.execute_analysis(
+            collection_name=collection_name,
+            metric_id=f"metadata_{field_name}",
+            compute_fn=compute_metadata_analysis,
+            parameters=params,
+            sampling=sampling,
+        )
+
+    def get_temporal_drift(
+        self,
+        collection_name: str,
+        timestamp_field: str | None = None,
+        granularity: str = "month",
+        parameters: dict[str, Any] | None = None,
+        sampling: SamplingConfig | None = None,
+    ) -> AnalysisResponse[TemporalDriftResult]:
+        params = {
+            **(parameters or {}),
+            "timestamp_field": timestamp_field,
+            "granularity": granularity,
+        }
+        return self.execute_analysis(
+            collection_name=collection_name,
+            metric_id=f"temporal_drift_{timestamp_field or 'auto'}_{granularity}",
+            compute_fn=compute_temporal_drift,
             parameters=params,
             sampling=sampling,
         )

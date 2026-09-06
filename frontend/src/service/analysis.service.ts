@@ -5,11 +5,13 @@ import type {
   CollectionSummary,
   DuplicateDetectionResult,
   KnnDensityResult,
+  MetadataAnalysisResult,
   MetricDefinition,
   NeighborInfo,
   OutlierDetectionResult,
   ProjectionResult,
   SimilarityDistributionResult,
+  TemporalDriftResult,
 } from '../store/analysis.types';
 
 const API_BASE = import.meta.env.VITE_SERVER_URL || '/api';
@@ -212,6 +214,53 @@ export const getClustering = async (
   if (!res.ok) {
     throw new Error(
       `Failed to load clustering for ${collectionName}: ${res.statusText}`,
+    );
+  }
+  return res.json();
+};
+
+export const getMetadataAnalysis = async (
+  collectionName: string,
+  fieldName: string,
+  maxSamples: number = 10000,
+  randomSeed: number = 42,
+): Promise<AnalysisResponse<MetadataAnalysisResult>> => {
+  const params = new URLSearchParams({
+    max_samples: String(maxSamples),
+    random_seed: String(randomSeed),
+  });
+  const res = await fetch(
+    `${API_BASE}/analysis/${encodeURIComponent(collectionName)}/metadata/${encodeURIComponent(fieldName)}?${params}`,
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Failed to load metadata analysis for ${fieldName}: ${res.statusText}`,
+    );
+  }
+  return res.json();
+};
+
+export const getTemporalDrift = async (
+  collectionName: string,
+  timestampField?: string | null,
+  granularity: 'day' | 'week' | 'month' | 'quarter' | 'year' = 'month',
+  maxSamples: number = 10000,
+  randomSeed: number = 42,
+): Promise<AnalysisResponse<TemporalDriftResult>> => {
+  const params = new URLSearchParams({
+    granularity,
+    max_samples: String(maxSamples),
+    random_seed: String(randomSeed),
+  });
+  if (timestampField) {
+    params.set('timestamp_field', timestampField);
+  }
+  const res = await fetch(
+    `${API_BASE}/analysis/${encodeURIComponent(collectionName)}/temporal?${params}`,
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Failed to load temporal drift for ${collectionName}: ${res.statusText}`,
     );
   }
   return res.json();

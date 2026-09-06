@@ -255,3 +255,52 @@ export interface ClusteringResult {
   distance_metric: string;
   interpretation: string;
 }
+
+export interface CategoryStats {
+  name: string;
+  count: number;
+  percentage: number;
+  mean_distance_to_centroid: number;
+  norm_mean: number;
+}
+
+export interface NumericFieldStats {
+  name: string;
+  stats: DistributionStats;
+  norm_correlation?: number | null;
+  density_correlation?: number | null;
+}
+
+export interface MetadataAnalysisResult {
+  field_name: string;
+  field_type: 'categorical' | 'numeric';
+  total_vectors_with_field: number;
+  coverage_rate: number;
+  unique_values_count: number;
+  categories?: CategoryStats[] | null;
+  cluster_purity?: number | null;
+  normalized_mutual_information?: number | null;
+  numeric_stats?: NumericFieldStats | null;
+  interpretation: string;
+}
+
+export interface TimeWindowStats {
+  window_label: string;
+  start_time: string;
+  end_time: string;
+  vector_count: number;
+  centroid_drift_from_previous?: number | null;
+  mean_norm: number;
+  mean_internal_similarity?: number | null;
+}
+
+export interface TemporalDriftResult {
+  timestamp_field: string;
+  granularity: 'day' | 'week' | 'month' | 'quarter' | 'year';
+  total_windows: number;
+  windows: TimeWindowStats[];
+  mean_consecutive_drift: number;
+  max_drift_window?: string | null;
+  max_drift_value?: number | null;
+  interpretation: string;
+}

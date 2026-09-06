@@ -9,12 +9,14 @@ from chromolite.analysis.models import (
     CollectionSummary,
     DuplicateDetectionResult,
     KnnDensityResult,
+    MetadataAnalysisResult,
     MetricDefinition,
     NeighborInfo,
     OutlierDetectionResult,
     ProjectionResult,
     SamplingConfig,
     SimilarityDistributionResult,
+    TemporalDriftResult,
 )
 from chromolite.analysis.service import analysis_service
 
@@ -250,6 +252,58 @@ def get_clusters(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to cluster collection '{collection_name}': {exc}",
+        ) from exc
+
+
+@router.get(
+    "/{collection_name}/metadata/{field_name}",
+    response_model=AnalysisResponse[MetadataAnalysisResult],
+)
+def get_metadata_analysis(
+    collection_name: str,
+    field_name: str,
+    max_samples: int = Query(10000, ge=10, le=50000),
+    random_seed: int = Query(42),
+):
+    """Analyze metadata category distributions, cluster purity, NMI, and numeric correlations."""
+    try:
+        sampling = SamplingConfig(max_samples=max_samples, random_seed=random_seed)
+        return analysis_service.get_metadata_analysis(
+            collection_name=collection_name,
+            field_name=field_name,
+            sampling=sampling,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to analyze metadata field '{field_name}' for '{collection_name}': {exc}",
+        ) from exc
+
+
+@router.get(
+    "/{collection_name}/temporal",
+    response_model=AnalysisResponse[TemporalDriftResult],
+)
+def get_temporal_drift(
+    collection_name: str,
+    timestamp_field: str | None = Query(None),
+    granularity: str = Query("month", pattern="^(day|week|month|quarter|year)$"),
+    max_samples: int = Query(10000, ge=10, le=50000),
+    random_seed: int = Query(42),
+):
+    """Evaluate temporal centroid drift across chronological time windows."""
+    try:
+        sampling = SamplingConfig(max_samples=max_samples, random_seed=random_seed)
+        return analysis_service.get_temporal_drift(
+            collection_name=collection_name,
+            timestamp_field=timestamp_field,
+            granularity=granularity,
+            sampling=sampling,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to compute temporal drift for '{collection_name}': {exc}",
         ) from exc
 
 

@@ -1,9 +1,18 @@
 import { useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { getCollectionByName } from '../../service/collection.service';
-import { getCollectionHealth } from '../../service/analysis.service';
+import {
+  getCollectionHealth,
+  getMetadataAnalysis,
+  getTemporalDrift,
+} from '../../service/analysis.service';
 import { useCollectionStore } from '../../store/collection.store';
-import type { AnalysisResponse, CollectionHealthResult } from '../../store/analysis.types';
+import type {
+  AnalysisResponse,
+  CollectionHealthResult,
+  MetadataAnalysisResult,
+  TemporalDriftResult,
+} from '../../store/analysis.types';
 import {
   Settings2,
   Globe,
@@ -18,6 +27,8 @@ import {
   Activity,
   AlertTriangle,
   Info,
+  Calendar,
+  X,
 } from 'lucide-react';
 import { CopyButton } from '../ui/copy-button';
 import { Metric } from '../ui/metric';
@@ -83,6 +94,13 @@ export const DashboardPanel = () => {
   const [healthData, setHealthData] = useState<AnalysisResponse<CollectionHealthResult> | null>(null);
   const [loadingHealth, setLoadingHealth] = useState(false);
 
+  const [temporalData, setTemporalData] = useState<AnalysisResponse<TemporalDriftResult> | null>(null);
+  const [, setLoadingTemporal] = useState(false);
+
+  const [selectedField, setSelectedField] = useState<string | null>(null);
+  const [fieldAnalysis, setFieldAnalysis] = useState<AnalysisResponse<MetadataAnalysisResult> | null>(null);
+  const [loadingFieldAnalysis, setLoadingFieldAnalysis] = useState(false);
+
   useEffect(() => {
     if (!activeCollection) return;
     let cancelled = false;
@@ -106,10 +124,40 @@ export const DashboardPanel = () => {
         if (!cancelled) setLoadingHealth(false);
       });
 
+    setLoadingTemporal(true);
+    getTemporalDrift(activeCollection.name)
+      .then((res) => {
+        if (!cancelled && res.result.total_windows > 1) {
+          setTemporalData(res);
+        }
+      })
+      .catch((err) => {
+        console.debug('Temporal drift not available', err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTemporal(false);
+      });
+
     return () => {
       cancelled = true;
     };
   }, [activeCollection, setDetails]);
+
+  const handleInspectField = (fieldName: string) => {
+    if (!activeCollection) return;
+    setSelectedField(fieldName);
+    setLoadingFieldAnalysis(true);
+    getMetadataAnalysis(activeCollection.name, fieldName)
+      .then((res) => {
+        setFieldAnalysis(res);
+      })
+      .catch((err) => {
+        console.error('Failed to analyze metadata field', err);
+      })
+      .finally(() => {
+        setLoadingFieldAnalysis(false);
+      });
+  };
 
   if (!activeCollection) {
     return (
@@ -508,7 +556,9 @@ export const DashboardPanel = () => {
                     return (
                       <tr
                         key={keyName}
-                        className="hover:bg-surface-subtle/60 transition-colors"
+                        onClick={() => handleInspectField(keyName)}
+                        className="hover:bg-surface-subtle/80 cursor-pointer transition-colors"
+                        title="Click to inspect metadata category purity, NMI, or numeric distribution"
                       >
                         <td className="px-4 py-2.5">
                           <span className="flex items-center gap-2">
@@ -556,6 +606,218 @@ export const DashboardPanel = () => {
             </table>
           </div>
         </Panel>
+
+        {/* Temporal Dynamics & Centroid Drift (Phase 11) */}
+        {temporalData?.result && temporalData.result.total_windows > 1 && (
+          <Panel>
+            <PanelHeader
+              title={
+                <div className="flex items-center gap-2">
+                  <Calendar className="text-accent h-4 w-4" />
+                  <span>Temporal Embedding Dynamics & Centroid Drift</span>
+                </div>
+              }
+              description={`Centroid drift across ${temporalData.result.total_windows} ${temporalData.result.granularity} windows (field: '${temporalData.result.timestamp_field}')`}
+              actions={
+                <Badge variant="neutral" size="xs" mono>
+                  Mean Drift: {temporalData.result.mean_consecutive_drift.toFixed(4)}
+                </Badge>
+              }
+            />
+            <PanelBody className="space-y-4 py-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Panel subtle className="p-3">
+                  <span className="text-text-muted text-[11px] font-sans">Timestamp Field</span>
+                  <div className="text-foreground font-mono font-semibold text-[13px] mt-0.5">
+                    {temporalData.result.timestamp_field}
+                  </div>
+                </Panel>
+                <Panel subtle className="p-3">
+                  <span className="text-text-muted text-[11px] font-sans">Time Granularity</span>
+                  <div className="text-foreground font-mono font-semibold text-[13px] capitalize mt-0.5">
+                    {temporalData.result.granularity}
+                  </div>
+                </Panel>
+                <Panel subtle className="p-3">
+                  <span className="text-text-muted text-[11px] font-sans">Mean Window Drift</span>
+                  <div className="text-accent font-mono font-semibold text-[13px] mt-0.5">
+                    {temporalData.result.mean_consecutive_drift.toFixed(4)}
+                  </div>
+                </Panel>
+                <Panel subtle className="p-3">
+                  <span className="text-text-muted text-[11px] font-sans">Max Drift Window</span>
+                  <div className="text-warning font-mono font-semibold text-[13px] mt-0.5 truncate">
+                    {temporalData.result.max_drift_window || '—'}
+                  </div>
+                </Panel>
+              </div>
+
+              {/* Timeline Windows Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[12px]">
+                  <thead>
+                    <tr className="border-border bg-surface-subtle/50 text-text-muted border-b font-mono text-[10.5px] uppercase">
+                      <th className="px-3.5 py-2 font-medium">Window</th>
+                      <th className="px-3.5 py-2 font-medium">Date Span</th>
+                      <th className="px-3.5 py-2 font-medium">Vectors</th>
+                      <th className="px-3.5 py-2 font-medium">Centroid Drift</th>
+                      <th className="px-3.5 py-2 font-medium">Mean Norm</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-border divide-y font-mono text-[11.5px]">
+                    {temporalData.result.windows.map((w) => (
+                      <tr key={w.window_label} className="hover:bg-surface-subtle/50">
+                        <td className="px-3.5 py-2 text-foreground font-semibold">
+                          {w.window_label}
+                        </td>
+                        <td className="px-3.5 py-2 text-text-secondary text-[11px] font-sans">
+                          {w.start_time} → {w.end_time}
+                        </td>
+                        <td className="px-3.5 py-2 text-foreground">
+                          {w.vector_count.toLocaleString()}
+                        </td>
+                        <td className="px-3.5 py-2">
+                          {w.centroid_drift_from_previous !== null && w.centroid_drift_from_previous !== undefined ? (
+                            <span className={cn(
+                              w.window_label === temporalData.result.max_drift_window
+                                ? 'text-warning font-bold'
+                                : 'text-text-secondary'
+                            )}>
+                              {w.centroid_drift_from_previous.toFixed(4)}
+                              {w.window_label === temporalData.result.max_drift_window ? ' (max)' : ''}
+                            </span>
+                          ) : (
+                            <span className="text-text-muted">Baseline</span>
+                          )}
+                        </td>
+                        <td className="px-3.5 py-2 text-text-secondary">
+                          {w.mean_norm.toFixed(3)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </PanelBody>
+          </Panel>
+        )}
+
+        {/* Selected Metadata Field Analysis Inspector (Phase 10) */}
+        {selectedField && (
+          <Panel>
+            <PanelHeader
+              title={
+                <div className="flex items-center gap-2">
+                  <Hash className="text-accent h-4 w-4" />
+                  <span>
+                    Metadata Semantic Alignment: <strong className="font-mono text-foreground">{selectedField}</strong>
+                  </span>
+                </div>
+              }
+              description="Evaluates whether metadata categories align with high-dimensional embedding geometry"
+              actions={
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedField(null);
+                    setFieldAnalysis(null);
+                  }}
+                  className="text-text-muted hover:text-foreground hover:bg-surface-subtle flex h-6 w-6 items-center justify-center rounded"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              }
+            />
+            <PanelBody className="space-y-4 py-4">
+              {loadingFieldAnalysis ? (
+                <div className="py-6">
+                  <LoadingState label={`Analyzing '${selectedField}' category dispersion and cluster purity…`} />
+                </div>
+              ) : fieldAnalysis?.result ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-[12px]">
+                    <Panel subtle className="p-2.5">
+                      <span className="text-text-muted text-[10.5px]">Field Type</span>
+                      <div className="text-foreground font-mono font-semibold text-[12.5px] capitalize mt-0.5">
+                        {fieldAnalysis.result.field_type}
+                      </div>
+                    </Panel>
+                    <Panel subtle className="p-2.5">
+                      <span className="text-text-muted text-[10.5px]">Vector Coverage</span>
+                      <div className="text-foreground font-mono font-semibold text-[12.5px] mt-0.5">
+                        {(fieldAnalysis.result.coverage_rate * 100).toFixed(1)}% ({fieldAnalysis.result.total_vectors_with_field.toLocaleString()} vecs)
+                      </div>
+                    </Panel>
+                    <Panel subtle className="p-2.5">
+                      <span className="text-text-muted text-[10.5px]">Cluster Purity</span>
+                      <div className="text-accent font-mono font-semibold text-[12.5px] mt-0.5">
+                        {fieldAnalysis.result.cluster_purity !== null && fieldAnalysis.result.cluster_purity !== undefined
+                          ? `${(fieldAnalysis.result.cluster_purity * 100).toFixed(1)}%`
+                          : '—'}
+                      </div>
+                    </Panel>
+                    <Panel subtle className="p-2.5">
+                      <span className="text-text-muted text-[10.5px]">Mutual Info (NMI)</span>
+                      <div className="text-foreground font-mono font-semibold text-[12.5px] mt-0.5">
+                        {fieldAnalysis.result.normalized_mutual_information !== null && fieldAnalysis.result.normalized_mutual_information !== undefined
+                          ? fieldAnalysis.result.normalized_mutual_information.toFixed(3)
+                          : '—'}
+                      </div>
+                    </Panel>
+                  </div>
+
+                  {/* Interpretation message */}
+                  <p className="text-text-secondary text-[12.5px] leading-relaxed">
+                    {fieldAnalysis.result.interpretation}
+                  </p>
+
+                  {/* Categories Breakdown Table if categorical */}
+                  {fieldAnalysis.result.categories && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-[12px]">
+                        <thead>
+                          <tr className="border-border bg-surface-subtle text-text-muted border-b font-mono text-[10.5px] uppercase">
+                            <th className="px-3 py-2 font-medium">Category / Label</th>
+                            <th className="px-3 py-2 font-medium">Count</th>
+                            <th className="px-3 py-2 font-medium">Proportion</th>
+                            <th className="px-3 py-2 font-medium">Intra-Category Radius</th>
+                            <th className="px-3 py-2 font-medium">Mean Norm</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-border divide-y">
+                          {fieldAnalysis.result.categories.map((cat) => (
+                            <tr key={cat.name} className="hover:bg-surface-subtle/50">
+                              <td className="px-3 py-2 font-sans font-medium text-foreground">
+                                {cat.name}
+                              </td>
+                              <td className="px-3 py-2 font-mono text-foreground">
+                                {cat.count.toLocaleString()}
+                              </td>
+                              <td className="px-3 py-2 font-mono text-text-secondary">
+                                {cat.percentage.toFixed(1)}%
+                              </td>
+                              <td className="px-3 py-2 font-mono text-text-secondary">
+                                {cat.mean_distance_to_centroid.toFixed(4)}
+                              </td>
+                              <td className="px-3 py-2 font-mono text-text-muted">
+                                {cat.norm_mean.toFixed(3)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Numeric Stats Table if numeric */}
+                  {fieldAnalysis.result.numeric_stats && (
+                    <StatsTable stats={fieldAnalysis.result.numeric_stats.stats} decimals={3} />
+                  )}
+                </>
+              ) : null}
+            </PanelBody>
+          </Panel>
+        )}
       </div>
     </div>
   );
