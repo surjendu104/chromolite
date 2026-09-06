@@ -5,6 +5,7 @@ import type {
   KnnDensityResult,
   MetricDefinition,
   NeighborInfo,
+  OutlierDetectionResult,
   ProjectionResult,
   SimilarityDistributionResult,
 } from '../store/analysis.types';
@@ -137,6 +138,32 @@ export const getVectorNeighbors = async (
   if (!res.ok) {
     throw new Error(
       `Failed to load neighbors for ${vectorId}: ${res.statusText}`,
+    );
+  }
+  return res.json();
+};
+
+export const getOutliers = async (
+  collectionName: string,
+  method: 'knn_distance' | 'lof' = 'knn_distance',
+  thresholdQuantile: number = 0.01,
+  k: number = 15,
+  maxSamples: number = 10000,
+  randomSeed: number = 42,
+): Promise<AnalysisResponse<OutlierDetectionResult>> => {
+  const params = new URLSearchParams({
+    method,
+    threshold_quantile: String(thresholdQuantile),
+    k: String(k),
+    max_samples: String(maxSamples),
+    random_seed: String(randomSeed),
+  });
+  const res = await fetch(
+    `${API_BASE}/analysis/${encodeURIComponent(collectionName)}/outliers?${params}`,
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Failed to load outlier detection for ${collectionName}: ${res.statusText}`,
     );
   }
   return res.json();

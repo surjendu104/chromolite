@@ -9,6 +9,7 @@ from chromolite.analysis.models import (
     KnnDensityResult,
     MetricDefinition,
     NeighborInfo,
+    OutlierDetectionResult,
     ProjectionResult,
     SamplingConfig,
     SimilarityDistributionResult,
@@ -166,6 +167,35 @@ def get_vector_neighbors(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to load neighbors for vector '{vector_id}': {exc}",
+        ) from exc
+
+
+@router.get(
+    "/{collection_name}/outliers",
+    response_model=AnalysisResponse[OutlierDetectionResult],
+)
+def get_outliers(
+    collection_name: str,
+    method: str = Query("knn_distance", pattern="^(knn_distance|lof)$"),
+    threshold_quantile: float = Query(0.01, ge=0.001, le=0.20),
+    k: int = Query(15, ge=2, le=100),
+    max_samples: int = Query(10000, ge=10, le=50000),
+    random_seed: int = Query(42),
+):
+    """Identify unusually isolated vectors relative to local neighborhoods via kNN distance or LOF."""
+    try:
+        sampling = SamplingConfig(max_samples=max_samples, random_seed=random_seed)
+        return analysis_service.get_outliers(
+            collection_name=collection_name,
+            method=method,
+            threshold_quantile=threshold_quantile,
+            k=k,
+            sampling=sampling,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to detect outliers for '{collection_name}': {exc}",
         ) from exc
 
 

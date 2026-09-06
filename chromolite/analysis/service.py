@@ -22,6 +22,7 @@ from chromolite.analysis.models import (
     KnnDensityResult,
     MetricDefinition,
     NeighborInfo,
+    OutlierDetectionResult,
     ProjectionResult,
     SamplingConfig,
     SimilarityDistributionResult,
@@ -30,6 +31,7 @@ from chromolite.analysis.neighbors import (
     compute_knn_and_density,
     get_vector_neighbors,
 )
+from chromolite.analysis.outliers import compute_outliers
 from chromolite.analysis.projection import compute_projection
 from chromolite.analysis.similarity import compute_similarity_distribution
 from chromolite.analysis.statistics import compute_collection_health
@@ -154,6 +156,15 @@ class AnalysisService:
                 range_max=100.0,
             )
         )
+        self.register_metric(
+            MetricDefinition(
+                id="outlier_detection",
+                name="Outlier & Anomaly Detection",
+                description="Identifies unusually isolated vectors relative to local neighborhoods via kNN distance and Local Outlier Factor (LOF).",
+                formula="LOF_k(p) = (sum lrd_k(o) / |N_k(p)|) / lrd_k(p)",
+                interpretation="Detects peripheral vectors, corrupt embeddings, or anomalous data points exceeding specified quantile thresholds.",
+            )
+        )
 
     def get_projection(
         self,
@@ -192,6 +203,29 @@ class AnalysisService:
             collection_name=collection_name,
             metric_id=f"knn_density_k{k}",
             compute_fn=compute_knn_and_density,
+            parameters=params,
+            sampling=sampling,
+        )
+
+    def get_outliers(
+        self,
+        collection_name: str,
+        method: str = "knn_distance",
+        threshold_quantile: float = 0.01,
+        k: int = 15,
+        parameters: dict[str, Any] | None = None,
+        sampling: SamplingConfig | None = None,
+    ) -> AnalysisResponse[OutlierDetectionResult]:
+        params = {
+            **(parameters or {}),
+            "method": method,
+            "threshold_quantile": threshold_quantile,
+            "k": k,
+        }
+        return self.execute_analysis(
+            collection_name=collection_name,
+            metric_id=f"outliers_{method}_q{threshold_quantile}_k{k}",
+            compute_fn=compute_outliers,
             parameters=params,
             sampling=sampling,
         )

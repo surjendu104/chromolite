@@ -173,3 +173,28 @@ export interface KnnDensityResult {
   sparsest_vectors: VectorDensityInfo[];
   interpretation: string;
 }
+
+export interface OutlierVector {
+  id: string;
+  outlier_score: number;
+  lof_score?: number | null;
+  mean_knn_distance: number;
+  local_density_score: number;
+  norm: number;
+  document?: string | null;
+  metadata?: Record<string, unknown> | null;
+  isolation_factor: number;
+}
+
+export interface OutlierDetectionResult {
+  method: 'knn_distance' | 'lof';
+  k: number;
+  threshold_quantile: number;
+  cutoff_score: number;
+  outlier_score_distribution: DistributionStats;
+  outlier_score_histogram: HistogramData;
+  outliers: OutlierVector[];
+  outliers_count: number;
+  outlier_rate: number;
+  interpretation: string;
+}

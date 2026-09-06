@@ -40,7 +40,7 @@ const ANALYSIS_NAV: NavItem[] = [
   { id: 'similarity', label: 'Similarity', icon: Activity, isReady: true },
   { id: 'neighbors', label: 'Neighbors', icon: Radio, isReady: true },
   { id: 'clusters', label: 'Clusters', icon: Layers, isReady: false },
-  { id: 'outliers', label: 'Outliers', icon: GitFork, isReady: false },
+  { id: 'outliers', label: 'Outliers', icon: GitFork, isReady: true },
   { id: 'duplicates', label: 'Duplicates', icon: Copy, isReady: false },
 ];
 

@@ -15,6 +15,7 @@ import DashboardPanel from './panels/dashboard';
 import DocumentPanel from './panels/documents';
 import EmbeddingsPanel from './panels/embeddings-panel';
 import NeighborsPanel from './panels/neighbors-panel';
+import OutliersPanel from './panels/outliers-panel';
 import SimilarityPanel from './panels/similarity-panel';
 import { AnalyticsView } from './panels/analytics-view';
 import { EmptyState } from './ui/empty-state';
@@ -134,11 +135,13 @@ export const RightPanel = ({ onOpenCommandPalette }: RightPanelProps) => {
             {activeTab === 'embeddings' && <EmbeddingsPanel />}
             {activeTab === 'similarity' && <SimilarityPanel />}
             {activeTab === 'neighbors' && <NeighborsPanel />}
+            {activeTab === 'outliers' && <OutliersPanel />}
             {activeTab !== 'overview' &&
               activeTab !== 'documents' &&
               activeTab !== 'embeddings' &&
               activeTab !== 'similarity' &&
-              activeTab !== 'neighbors' && <AnalyticsView tab={activeTab} />}
+              activeTab !== 'neighbors' &&
+              activeTab !== 'outliers' && <AnalyticsView tab={activeTab} />}
           </>
         ) : (
           <div className="flex h-full items-center justify-center p-6">

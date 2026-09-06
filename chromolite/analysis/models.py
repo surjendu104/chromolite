@@ -224,3 +224,32 @@ class KnnDensityResult(BaseModel):
     densest_vectors: list[VectorDensityInfo] = Field(default_factory=list)
     sparsest_vectors: list[VectorDensityInfo] = Field(default_factory=list)
     interpretation: str
+
+
+class OutlierVector(BaseModel):
+    """Vector flagged as unusually isolated relative to local neighborhood."""
+
+    id: str
+    outlier_score: float
+    lof_score: float | None = None
+    mean_knn_distance: float
+    local_density_score: float
+    norm: float
+    document: str | None = None
+    metadata: dict[str, Any] | None = None
+    isolation_factor: float
+
+
+class OutlierDetectionResult(BaseModel):
+    """Collection-wide outlier & anomaly detection per Phase 6."""
+
+    method: str  # "knn_distance", "lof"
+    k: int
+    threshold_quantile: float  # e.g. 0.01 (top 1%)
+    cutoff_score: float
+    outlier_score_distribution: DistributionStats
+    outlier_score_histogram: HistogramData
+    outliers: list[OutlierVector]
+    outliers_count: int
+    outlier_rate: float
+    interpretation: str
