@@ -159,3 +159,68 @@ class SimilarityDistributionResult(BaseModel):
     is_potentially_anisotropic: bool = False
     anisotropy_interpretation: str
     nearest_neighbor_similarity: DistributionStats | None = None
+
+
+class ProjectionPoint(BaseModel):
+    """Single 2D projected embedding point for canvas visualization."""
+
+    id: str
+    x: float
+    y: float
+    document: str | None = None
+    metadata: dict[str, Any] | None = None
+    norm: float = 1.0
+
+
+class ExplainedVariance(BaseModel):
+    pc1: float
+    pc2: float
+    total: float
+
+
+class ProjectionResult(BaseModel):
+    """2D projection dataset per Phase 3 (PCA) and Phase 4 (UMAP/t-SNE)."""
+
+    algorithm: str  # "pca", "umap", "tsne"
+    points: list[ProjectionPoint]
+    explained_variance: ExplainedVariance | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    distance_metric: str = "cosine"
+    dimension: int | None = None
+
+
+class NeighborInfo(BaseModel):
+    """Nearest neighbor details in original embedding space."""
+
+    id: str
+    rank: int
+    distance: float
+    similarity: float
+    document: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class VectorDensityInfo(BaseModel):
+    """Per-vector kNN distance & local density profile."""
+
+    id: str
+    mean_knn_distance: float
+    median_knn_distance: float
+    nearest_neighbor_distance: float
+    local_density_score: float
+    document: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class KnnDensityResult(BaseModel):
+    """High-dimensional kNN & local density distribution per Phase 5."""
+
+    k: int
+    distance_metric: str = "cosine"
+    knn_distance_distribution: DistributionStats
+    knn_distance_histogram: HistogramData
+    local_density_distribution: DistributionStats
+    local_density_histogram: HistogramData
+    densest_vectors: list[VectorDensityInfo] = Field(default_factory=list)
+    sparsest_vectors: list[VectorDensityInfo] = Field(default_factory=list)
+    interpretation: str

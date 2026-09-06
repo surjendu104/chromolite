@@ -6,7 +6,10 @@ from chromolite.analysis.models import (
     AnalysisResponse,
     CollectionHealthResult,
     CollectionSummary,
+    KnnDensityResult,
     MetricDefinition,
+    NeighborInfo,
+    ProjectionResult,
     SamplingConfig,
     SimilarityDistributionResult,
 )
@@ -82,6 +85,87 @@ def get_similarity_distribution(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to compute similarity distribution for '{collection_name}': {exc}",
+        ) from exc
+
+
+@router.get(
+    "/{collection_name}/projection",
+    response_model=AnalysisResponse[ProjectionResult],
+)
+def get_projection(
+    collection_name: str,
+    algorithm: str = Query("pca", pattern="^(pca|umap|tsne)$"),
+    max_samples: int = Query(5000, ge=10, le=50000),
+    n_neighbors: int = Query(15, ge=2, le=100),
+    perplexity: float = Query(30.0, ge=2.0, le=100.0),
+    random_seed: int = Query(42),
+):
+    """Compute 2D embedding space projection using PCA (deterministic baseline), UMAP, or t-SNE."""
+    try:
+        sampling = SamplingConfig(max_samples=max_samples, random_seed=random_seed)
+        parameters = {
+            "algorithm": algorithm,
+            "n_neighbors": n_neighbors,
+            "perplexity": perplexity,
+            "random_seed": random_seed,
+        }
+        return analysis_service.get_projection(
+            collection_name=collection_name,
+            parameters=parameters,
+            sampling=sampling,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to compute 2D {algorithm.upper()} projection for '{collection_name}': {exc}",
+        ) from exc
+
+
+@router.get(
+    "/{collection_name}/knn",
+    response_model=AnalysisResponse[KnnDensityResult],
+)
+def get_knn_density(
+    collection_name: str,
+    k: int = Query(15, ge=1, le=100),
+    max_samples: int = Query(10000, ge=10, le=50000),
+    random_seed: int = Query(42),
+):
+    """Compute original high-dimensional kNN distances and relative local density scores."""
+    try:
+        sampling = SamplingConfig(max_samples=max_samples, random_seed=random_seed)
+        return analysis_service.get_knn_density(
+            collection_name=collection_name,
+            k=k,
+            sampling=sampling,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to compute kNN density for '{collection_name}': {exc}",
+        ) from exc
+
+
+@router.get(
+    "/{collection_name}/vectors/{vector_id}/neighbors",
+    response_model=list[NeighborInfo],
+)
+def get_vector_neighbors(
+    collection_name: str,
+    vector_id: str,
+    k: int = Query(15, ge=1, le=100),
+):
+    """Retrieve top-K nearest neighbors in original embedding space for a specific vector."""
+    try:
+        return analysis_service.get_vector_neighbors(
+            collection_name=collection_name,
+            vector_id=vector_id,
+            k=k,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to load neighbors for vector '{vector_id}': {exc}",
         ) from exc
 
 

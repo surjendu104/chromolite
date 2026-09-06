@@ -118,3 +118,58 @@ export interface CollectionSummary {
   index_information: IndexInformation;
   collection_metadata: Record<string, unknown>;
 }
+
+export interface ProjectionPoint {
+  id: string;
+  x: number;
+  y: number;
+  document?: string | null;
+  metadata?: Record<string, unknown> | null;
+  norm: number;
+}
+
+export interface ExplainedVariance {
+  pc1: number;
+  pc2: number;
+  total: number;
+}
+
+export interface ProjectionResult {
+  algorithm: 'pca' | 'umap' | 'tsne';
+  points: ProjectionPoint[];
+  explained_variance?: ExplainedVariance | null;
+  parameters: Record<string, unknown>;
+  distance_metric: string;
+  dimension: number | null;
+}
+
+export interface NeighborInfo {
+  id: string;
+  rank: number;
+  distance: number;
+  similarity: number;
+  document?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface VectorDensityInfo {
+  id: string;
+  mean_knn_distance: number;
+  median_knn_distance: number;
+  nearest_neighbor_distance: number;
+  local_density_score: number;
+  document?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface KnnDensityResult {
+  k: number;
+  distance_metric: string;
+  knn_distance_distribution: DistributionStats;
+  knn_distance_histogram: HistogramData;
+  local_density_distribution: DistributionStats;
+  local_density_histogram: HistogramData;
+  densest_vectors: VectorDensityInfo[];
+  sparsest_vectors: VectorDensityInfo[];
+  interpretation: string;
+}

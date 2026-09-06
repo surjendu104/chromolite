@@ -19,10 +19,18 @@ from chromolite.analysis.models import (
     AnalysisResponse,
     AnalysisStatus,
     CollectionHealthResult,
+    KnnDensityResult,
     MetricDefinition,
+    NeighborInfo,
+    ProjectionResult,
     SamplingConfig,
     SimilarityDistributionResult,
 )
+from chromolite.analysis.neighbors import (
+    compute_knn_and_density,
+    get_vector_neighbors,
+)
+from chromolite.analysis.projection import compute_projection
 from chromolite.analysis.similarity import compute_similarity_distribution
 from chromolite.analysis.statistics import compute_collection_health
 from chromolite.connection import db
@@ -126,6 +134,41 @@ class AnalysisService:
                 range_max=1.0,
             )
         )
+        self.register_metric(
+            MetricDefinition(
+                id="projection_2d",
+                name="2D Embedding Projection",
+                description="2D dimensionality reduction via deterministic PCA baseline, non-linear UMAP, and t-SNE.",
+                formula="PCA: max Var(X w_1), UMAP: min D_KL(P || Q)",
+                interpretation="Visualizes embedding space topology and manifold structure. 2D distances are visual approximations.",
+            )
+        )
+        self.register_metric(
+            MetricDefinition(
+                id="knn_density",
+                name="kNN & Local Density Analysis",
+                description="k-Nearest Neighbor distance distribution and relative local density estimation in high-dimensional space.",
+                formula="density(x) = 1 / (mean(d(x, kNN(x))) + eps)",
+                interpretation="Characterizes local neighborhood tightness and isolates peripheral vectors from core clusters.",
+                range_min=0.0,
+                range_max=100.0,
+            )
+        )
+
+    def get_projection(
+        self,
+        collection_name: str,
+        parameters: dict[str, Any] | None = None,
+        sampling: SamplingConfig | None = None,
+    ) -> AnalysisResponse[ProjectionResult]:
+        algo = parameters.get("algorithm", "pca") if parameters else "pca"
+        return self.execute_analysis(
+            collection_name=collection_name,
+            metric_id=f"projection_{algo}",
+            compute_fn=compute_projection,
+            parameters=parameters,
+            sampling=sampling,
+        )
 
     def register_metric(self, metric: MetricDefinition) -> None:
         self.registry[metric.id] = metric
@@ -136,6 +179,31 @@ class AnalysisService:
     def get_collection(self, collection_name: str) -> Collection:
         client = db.get_client()
         return client.get_collection(name=collection_name)
+
+    def get_knn_density(
+        self,
+        collection_name: str,
+        k: int = 15,
+        parameters: dict[str, Any] | None = None,
+        sampling: SamplingConfig | None = None,
+    ) -> AnalysisResponse[KnnDensityResult]:
+        params = {**(parameters or {}), "k": k}
+        return self.execute_analysis(
+            collection_name=collection_name,
+            metric_id=f"knn_density_k{k}",
+            compute_fn=compute_knn_and_density,
+            parameters=params,
+            sampling=sampling,
+        )
+
+    def get_vector_neighbors(
+        self,
+        collection_name: str,
+        vector_id: str,
+        k: int = 15,
+    ) -> list[NeighborInfo]:
+        _, batch = self.extract_vectors(collection_name, sampling=SamplingConfig(max_samples=25000))
+        return get_vector_neighbors(batch, vector_id, k=k)
 
     def get_collection_health(
         self,
