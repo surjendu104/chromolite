@@ -11,6 +11,7 @@ import { cn } from '../lib/utils';
 import { useSidebarStore, type TabId } from '../store/sidebar.store';
 import { useCollectionStore } from '../store/collection.store';
 import { useThemeStore } from '../store/theme.store';
+import ClustersPanel from './panels/clusters-panel';
 import DashboardPanel from './panels/dashboard';
 import DocumentPanel from './panels/documents';
 import DuplicatesPanel from './panels/duplicates-panel';
@@ -136,6 +137,7 @@ export const RightPanel = ({ onOpenCommandPalette }: RightPanelProps) => {
             {activeTab === 'embeddings' && <EmbeddingsPanel />}
             {activeTab === 'similarity' && <SimilarityPanel />}
             {activeTab === 'neighbors' && <NeighborsPanel />}
+            {activeTab === 'clusters' && <ClustersPanel />}
             {activeTab === 'outliers' && <OutliersPanel />}
             {activeTab === 'duplicates' && <DuplicatesPanel />}
             {activeTab !== 'overview' &&
@@ -143,6 +145,7 @@ export const RightPanel = ({ onOpenCommandPalette }: RightPanelProps) => {
               activeTab !== 'embeddings' &&
               activeTab !== 'similarity' &&
               activeTab !== 'neighbors' &&
+              activeTab !== 'clusters' &&
               activeTab !== 'outliers' &&
               activeTab !== 'duplicates' && <AnalyticsView tab={activeTab} />}
           </>

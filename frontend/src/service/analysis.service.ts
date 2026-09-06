@@ -1,5 +1,6 @@
 import type {
   AnalysisResponse,
+  ClusteringResult,
   CollectionHealthResult,
   CollectionSummary,
   DuplicateDetectionResult,
@@ -187,6 +188,30 @@ export const getDuplicates = async (
   if (!res.ok) {
     throw new Error(
       `Failed to load duplicate detection for ${collectionName}: ${res.statusText}`,
+    );
+  }
+  return res.json();
+};
+
+export const getClustering = async (
+  collectionName: string,
+  k: number = 8,
+  algorithm: 'minibatch_kmeans' | 'kmeans' = 'minibatch_kmeans',
+  maxSamples: number = 10000,
+  randomSeed: number = 42,
+): Promise<AnalysisResponse<ClusteringResult>> => {
+  const params = new URLSearchParams({
+    k: String(k),
+    algorithm,
+    max_samples: String(maxSamples),
+    random_seed: String(randomSeed),
+  });
+  const res = await fetch(
+    `${API_BASE}/analysis/${encodeURIComponent(collectionName)}/clusters?${params}`,
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Failed to load clustering for ${collectionName}: ${res.statusText}`,
     );
   }
   return res.json();

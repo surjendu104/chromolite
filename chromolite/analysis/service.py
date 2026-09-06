@@ -10,6 +10,7 @@ from typing import Any
 
 from chromadb.api.models.Collection import Collection
 
+from chromolite.analysis.clustering import compute_clustering
 from chromolite.analysis.duplicates import compute_duplicates
 from chromolite.analysis.extractor import (
     ExtractedVectorBatch,
@@ -19,6 +20,7 @@ from chromolite.analysis.models import (
     AnalysisMethod,
     AnalysisResponse,
     AnalysisStatus,
+    ClusteringResult,
     CollectionHealthResult,
     DuplicateDetectionResult,
     KnnDensityResult,
@@ -176,6 +178,15 @@ class AnalysisService:
                 interpretation="Measures collection redundancy, duplicates, and near-identical vectors impacting retrieval diversity and memory.",
             )
         )
+        self.register_metric(
+            MetricDefinition(
+                id="clustering",
+                name="Clustering & Quality Analysis",
+                description="Partitions embedding space via MiniBatch K-Means and computes Silhouette Score and Davies-Bouldin separation.",
+                formula="Silhouette in [-1, 1], DB Index >= 0",
+                interpretation="Characterizes topic partitions, semantic clusters, cohesion, and inter-cluster separation.",
+            )
+        )
 
     def get_projection(
         self,
@@ -256,6 +267,27 @@ class AnalysisService:
             collection_name=collection_name,
             metric_id=f"duplicates_t{threshold}",
             compute_fn=compute_duplicates,
+            parameters=params,
+            sampling=sampling,
+        )
+
+    def get_clustering(
+        self,
+        collection_name: str,
+        k: int = 8,
+        algorithm: str = "minibatch_kmeans",
+        parameters: dict[str, Any] | None = None,
+        sampling: SamplingConfig | None = None,
+    ) -> AnalysisResponse[ClusteringResult]:
+        params = {
+            **(parameters or {}),
+            "k": k,
+            "algorithm": algorithm,
+        }
+        return self.execute_analysis(
+            collection_name=collection_name,
+            metric_id=f"clustering_{algorithm}_k{k}",
+            compute_fn=compute_clustering,
             parameters=params,
             sampling=sampling,
         )

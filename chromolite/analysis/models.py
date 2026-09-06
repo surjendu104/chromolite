@@ -287,3 +287,38 @@ class DuplicateDetectionResult(BaseModel):
     redundancy_rate: float
     groups: list[DuplicateGroup]
     interpretation: str
+
+
+class ClusterInfo(BaseModel):
+    """Cluster properties, centroid distance, and metadata profile."""
+
+    cluster_id: int
+    name: str
+    size: int
+    percentage: float
+    mean_intra_distance: float
+    nearest_cluster_id: int | None = None
+    nearest_cluster_distance: float | None = None
+    sample_members: list[str] = Field(default_factory=list)
+    dominant_metadata: dict[str, str] = Field(default_factory=dict)
+
+
+class ClusterQualityMetrics(BaseModel):
+    """Mathematical cluster quality indices per Phase 9."""
+
+    silhouette_score: float
+    davies_bouldin_index: float
+    mean_intra_cluster_distance: float
+    mean_inter_cluster_distance: float
+    quality_interpretation: str
+
+
+class ClusteringResult(BaseModel):
+    """Collection-wide clustering & quality evaluation per Phase 8 & 9."""
+
+    algorithm: str  # "minibatch_kmeans", "kmeans"
+    k: int
+    clusters: list[ClusterInfo]
+    quality: ClusterQualityMetrics
+    distance_metric: str = "cosine"
+    interpretation: str

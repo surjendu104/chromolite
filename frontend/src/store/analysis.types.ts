@@ -226,3 +226,32 @@ export interface DuplicateDetectionResult {
   groups: DuplicateGroup[];
   interpretation: string;
 }
+
+export interface ClusterInfo {
+  cluster_id: number;
+  name: string;
+  size: number;
+  percentage: number;
+  mean_intra_distance: number;
+  nearest_cluster_id?: number | null;
+  nearest_cluster_distance?: number | null;
+  sample_members: string[];
+  dominant_metadata: Record<string, string>;
+}
+
+export interface ClusterQualityMetrics {
+  silhouette_score: number;
+  davies_bouldin_index: number;
+  mean_intra_cluster_distance: number;
+  mean_inter_cluster_distance: number;
+  quality_interpretation: string;
+}
+
+export interface ClusteringResult {
+  algorithm: 'minibatch_kmeans' | 'kmeans';
+  k: number;
+  clusters: ClusterInfo[];
+  quality: ClusterQualityMetrics;
+  distance_metric: string;
+  interpretation: string;
+}

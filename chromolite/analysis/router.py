@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from chromolite.analysis.models import (
     AnalysisResponse,
+    ClusteringResult,
     CollectionHealthResult,
     CollectionSummary,
     DuplicateDetectionResult,
@@ -222,6 +223,33 @@ def get_duplicates(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to detect duplicates for '{collection_name}': {exc}",
+        ) from exc
+
+
+@router.get(
+    "/{collection_name}/clusters",
+    response_model=AnalysisResponse[ClusteringResult],
+)
+def get_clusters(
+    collection_name: str,
+    k: int = Query(8, ge=2, le=30),
+    algorithm: str = Query("minibatch_kmeans", pattern="^(minibatch_kmeans|kmeans)$"),
+    max_samples: int = Query(10000, ge=10, le=50000),
+    random_seed: int = Query(42),
+):
+    """Cluster embeddings via MiniBatch K-Means and calculate Silhouette and Davies-Bouldin metrics."""
+    try:
+        sampling = SamplingConfig(max_samples=max_samples, random_seed=random_seed)
+        return analysis_service.get_clustering(
+            collection_name=collection_name,
+            k=k,
+            algorithm=algorithm,
+            sampling=sampling,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to cluster collection '{collection_name}': {exc}",
         ) from exc
 
 
