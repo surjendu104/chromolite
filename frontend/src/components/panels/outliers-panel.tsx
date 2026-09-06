@@ -51,6 +51,19 @@ export const OutliersPanel: React.FC = () => {
   const [neighborsList, setNeighborsList] = useState<NeighborInfo[]>([]);
   const [loadingNeighbors, setLoadingNeighbors] = useState(false);
 
+  const loadNeighbors = useCallback(async (vectorId: string, k: number) => {
+    if (!activeCollection) return;
+    setLoadingNeighbors(true);
+    try {
+      const res = await getVectorNeighbors(activeCollection.name, vectorId, k);
+      setNeighborsList(res);
+    } catch (err) {
+      console.error('Failed to load vector neighbors', err);
+    } finally {
+      setLoadingNeighbors(false);
+    }
+  }, [activeCollection]);
+
   const runAnalysis = useCallback(async () => {
     if (!activeCollection) return;
     setIsLoading(true);
@@ -65,9 +78,6 @@ export const OutliersPanel: React.FC = () => {
         randomSeed,
       );
       setData(res);
-      if (selectedOutlier) {
-        loadNeighbors(selectedOutlier.id, kValue);
-      }
     } catch (err: unknown) {
       console.error('Failed to detect outliers', err);
       setError(
@@ -85,25 +95,11 @@ export const OutliersPanel: React.FC = () => {
     kValue,
     sampleSize,
     randomSeed,
-    selectedOutlier,
   ]);
 
   useEffect(() => {
     runAnalysis();
   }, [runAnalysis]);
-
-  const loadNeighbors = async (vectorId: string, k: number) => {
-    if (!activeCollection) return;
-    setLoadingNeighbors(true);
-    try {
-      const res = await getVectorNeighbors(activeCollection.name, vectorId, k);
-      setNeighborsList(res);
-    } catch (err) {
-      console.error('Failed to load vector neighbors', err);
-    } finally {
-      setLoadingNeighbors(false);
-    }
-  };
 
   const handleSelectOutlier = (vec: OutlierVector) => {
     setSelectedOutlier(vec);

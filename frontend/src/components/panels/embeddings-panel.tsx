@@ -49,11 +49,11 @@ export const EmbeddingsPanel: React.FC = () => {
         randomSeed,
       );
       setData(res);
-      // Keep selected point if still in points list
-      if (selectedPoint) {
-        const found = res.result.points.find((p) => p.id === selectedPoint.id);
-        setSelectedPoint(found || null);
-      }
+      // Keep selected point if still in points list using functional update
+      setSelectedPoint((prev) => {
+        if (!prev) return null;
+        return res.result.points.find((p) => p.id === prev.id) || null;
+      });
     } catch (err: unknown) {
       console.error('Failed to compute projection', err);
       setError(
@@ -64,7 +64,7 @@ export const EmbeddingsPanel: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [activeCollection, algorithm, sampleSize, randomSeed, selectedPoint]);
+  }, [activeCollection, algorithm, sampleSize, randomSeed]);
 
   useEffect(() => {
     runProjection();

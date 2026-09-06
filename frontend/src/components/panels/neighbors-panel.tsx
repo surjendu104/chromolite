@@ -48,6 +48,19 @@ export const NeighborsPanel: React.FC = () => {
   const [neighborsList, setNeighborsList] = useState<NeighborInfo[]>([]);
   const [loadingNeighbors, setLoadingNeighbors] = useState(false);
 
+  const loadNeighbors = useCallback(async (vectorId: string, k: number) => {
+    if (!activeCollection) return;
+    setLoadingNeighbors(true);
+    try {
+      const res = await getVectorNeighbors(activeCollection.name, vectorId, k);
+      setNeighborsList(res);
+    } catch (err) {
+      console.error('Failed to load vector neighbors', err);
+    } finally {
+      setLoadingNeighbors(false);
+    }
+  }, [activeCollection]);
+
   const runAnalysis = useCallback(async () => {
     if (!activeCollection) return;
     setIsLoading(true);
@@ -60,10 +73,6 @@ export const NeighborsPanel: React.FC = () => {
         randomSeed,
       );
       setData(res);
-      // If a vector is already selected, reload its neighbors with new K
-      if (selectedVector) {
-        loadNeighbors(selectedVector.id, kValue);
-      }
     } catch (err: unknown) {
       console.error('Failed to compute kNN density', err);
       setError(
@@ -74,24 +83,11 @@ export const NeighborsPanel: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [activeCollection, kValue, sampleSize, randomSeed, selectedVector]);
+  }, [activeCollection, kValue, sampleSize, randomSeed]);
 
   useEffect(() => {
     runAnalysis();
   }, [runAnalysis]);
-
-  const loadNeighbors = async (vectorId: string, k: number) => {
-    if (!activeCollection) return;
-    setLoadingNeighbors(true);
-    try {
-      const res = await getVectorNeighbors(activeCollection.name, vectorId, k);
-      setNeighborsList(res);
-    } catch (err) {
-      console.error('Failed to load vector neighbors', err);
-    } finally {
-      setLoadingNeighbors(false);
-    }
-  };
 
   const handleSelectVector = (vec: VectorDensityInfo) => {
     setSelectedVector(vec);

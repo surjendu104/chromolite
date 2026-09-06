@@ -57,12 +57,13 @@ export const ClustersPanel: React.FC = () => {
         randomSeed,
       );
       setData(res);
-      if (selectedCluster) {
-        const found = res.result.clusters.find(
-          (c) => c.cluster_id === selectedCluster.cluster_id,
+      setSelectedCluster((prev) => {
+        if (!prev) return null;
+        return (
+          res.result.clusters.find((c) => c.cluster_id === prev.cluster_id) ||
+          null
         );
-        setSelectedCluster(found || null);
-      }
+      });
     } catch (err: unknown) {
       console.error('Failed to cluster collection', err);
       setError(
@@ -73,7 +74,7 @@ export const ClustersPanel: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [activeCollection, kClusters, algorithm, sampleSize, randomSeed, selectedCluster]);
+  }, [activeCollection, kClusters, algorithm, sampleSize, randomSeed]);
 
   useEffect(() => {
     runClustering();
