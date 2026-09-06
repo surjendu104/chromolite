@@ -13,6 +13,7 @@ import { useCollectionStore } from '../store/collection.store';
 import { useThemeStore } from '../store/theme.store';
 import DashboardPanel from './panels/dashboard';
 import DocumentPanel from './panels/documents';
+import SimilarityPanel from './panels/similarity-panel';
 import { AnalyticsView } from './panels/analytics-view';
 import { EmptyState } from './ui/empty-state';
 
@@ -128,9 +129,10 @@ export const RightPanel = ({ onOpenCommandPalette }: RightPanelProps) => {
           <>
             {activeTab === 'overview' && <DashboardPanel />}
             {activeTab === 'documents' && <DocumentPanel />}
-            {activeTab !== 'overview' && activeTab !== 'documents' && (
-              <AnalyticsView tab={activeTab} />
-            )}
+            {activeTab === 'similarity' && <SimilarityPanel />}
+            {activeTab !== 'overview' &&
+              activeTab !== 'documents' &&
+              activeTab !== 'similarity' && <AnalyticsView tab={activeTab} />}
           </>
         ) : (
           <div className="flex h-full items-center justify-center p-6">

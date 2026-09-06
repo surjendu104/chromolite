@@ -1,0 +1,161 @@
+from __future__ import annotations
+
+from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class AnalysisMethod(str, Enum):
+    EXACT = "exact"
+    SAMPLED = "sampled"
+    APPROXIMATE = "approximate"
+    ESTIMATED = "estimated"
+    UNAVAILABLE = "unavailable"
+
+
+class MetricDefinition(BaseModel):
+    id: str
+    name: str
+    description: str
+    formula: str | None = None
+    interpretation: str | None = None
+    range_min: float | None = None
+    range_max: float | None = None
+    unit: str | None = None
+    higher_is_better: bool | None = None
+
+
+class SamplingStrategy(str, Enum):
+    ALL = "all"
+    RANDOM = "random"
+    STRATIFIED = "stratified"
+    CLUSTER_AWARE = "cluster_aware"
+
+
+class SamplingConfig(BaseModel):
+    strategy: SamplingStrategy = SamplingStrategy.RANDOM
+    max_samples: int = Field(
+        default=10000,
+        ge=1,
+        description="Maximum number of vectors to sample for analysis.",
+    )
+    random_seed: int = Field(
+        default=42,
+        description="Deterministic random seed for reproducible sampling.",
+    )
+
+
+class AnalysisStatus(str, Enum):
+    COMPLETED = "completed"
+    PARTIAL = "partial"
+    EMPTY = "empty"
+    FAILED = "failed"
+    UNAVAILABLE = "unavailable"
+
+
+class AnalysisResponse[T](BaseModel):
+    """Standardized envelope for all analytical endpoints per AGENTS.md."""
+
+    status: AnalysisStatus = AnalysisStatus.COMPLETED
+    metric_id: str
+    computed_on: int = Field(
+        description="Number of valid vectors included in computation."
+    )
+    total_vectors: int = Field(
+        description="Total vector count present in collection."
+    )
+    method: AnalysisMethod = AnalysisMethod.EXACT
+    approximate: bool = False
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    result: T
+    execution_time_ms: float = 0.0
+    warnings: list[str] = Field(default_factory=list)
+    unavailable_reason: str | None = None
+
+
+class IndexInformation(BaseModel):
+    space: str = "cosine"
+    ef_construction: int | None = None
+    ef_search: int | None = None
+    max_neighbors: int | None = None
+    resize_factor: float | None = None
+    sync_threshold: int | None = None
+    raw_configuration: dict[str, Any] = Field(default_factory=dict)
+
+
+class MetadataFieldSummary(BaseModel):
+    name: str
+    data_type: str
+    sample_values: list[Any] = Field(default_factory=list)
+    unique_count: int | None = None
+    null_count: int = 0
+    is_high_cardinality: bool = False
+
+
+class CollectionSummary(BaseModel):
+    """Clean internal representation of a vector collection per Phase 0 spec."""
+
+    id: str
+    name: str
+    vector_count: int
+    dimension: int | None = None
+    distance_metric: str = "cosine"
+    database: str = "default_database"
+    tenant: str = "default_tenant"
+    metadata_fields: list[MetadataFieldSummary] = Field(default_factory=list)
+    index_information: IndexInformation = Field(default_factory=IndexInformation)
+    collection_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class DistributionStats(BaseModel):
+    """Rigorous descriptive statistics for continuous numerical metrics."""
+
+    min: float
+    p01: float
+    p05: float
+    p25: float
+    median: float
+    p75: float
+    p95: float
+    p99: float
+    max: float
+    mean: float
+    std: float
+
+
+class HistogramData(BaseModel):
+    """Histogram representation for visual distribution plotting."""
+
+    bins: list[float] = Field(description="Bin edges, length K+1")
+    counts: list[int] = Field(description="Bin frequencies, length K")
+    bin_centers: list[float] = Field(description="Midpoints of bins, length K")
+
+
+class CollectionHealthResult(BaseModel):
+    """Comprehensive health & norm distribution metrics per Phase 1."""
+
+    vector_count: int
+    dimension: int | None = None
+    distance_metric: str = "cosine"
+    is_unit_normalized: bool = False
+    unit_norm_tolerance: float = 0.01
+    norms: DistributionStats
+    norm_histogram: HistogramData
+    zero_vector_count: int = 0
+    invalid_vector_count: int = 0
+    health_status: str = "healthy"  # "healthy", "warning", "critical", "empty"
+    anomalies: list[str] = Field(default_factory=list)
+
+
+class SimilarityDistributionResult(BaseModel):
+    """Pairwise and kNN similarity distributions per Phase 2."""
+
+    distance_metric: str = "cosine"
+    pair_sample_count: int
+    pairwise_similarity: DistributionStats
+    similarity_histogram: HistogramData
+    mean_pairwise_similarity: float
+    is_potentially_anisotropic: bool = False
+    anisotropy_interpretation: str
+    nearest_neighbor_similarity: DistributionStats | None = None

@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { getCollectionByName } from '../../service/collection.service';
+import { getCollectionHealth } from '../../service/analysis.service';
 import { useCollectionStore } from '../../store/collection.store';
+import type { AnalysisResponse, CollectionHealthResult } from '../../store/analysis.types';
 import {
   Settings2,
   Globe,
@@ -13,12 +15,17 @@ import {
   ListTree,
   Box,
   Database,
+  Activity,
+  AlertTriangle,
+  Info,
 } from 'lucide-react';
 import { CopyButton } from '../ui/copy-button';
 import { Metric } from '../ui/metric';
 import { Panel, PanelHeader, PanelBody } from '../ui/panel';
 import { Badge } from '../ui/badge';
 import { LoadingState } from '../ui/loading-state';
+import { DistributionHistogram } from '../ui/distribution-histogram';
+import { StatsTable } from '../ui/stats-table';
 
 type SchemaIndex = { enabled: boolean; config: Record<string, unknown> };
 type SchemaTypeConfig = Record<string, SchemaIndex | null> | null;
@@ -73,6 +80,9 @@ export const DashboardPanel = () => {
   const setDetails = useCollectionStore((s) => s.setActiveCollectionDetails);
   const documents = useCollectionStore((s) => s.documents);
 
+  const [healthData, setHealthData] = useState<AnalysisResponse<CollectionHealthResult> | null>(null);
+  const [loadingHealth, setLoadingHealth] = useState(false);
+
   useEffect(() => {
     if (!activeCollection) return;
     let cancelled = false;
@@ -83,6 +93,19 @@ export const DashboardPanel = () => {
       .catch((err) => {
         console.error('Failed to load collection details', err);
       });
+
+    setLoadingHealth(true);
+    getCollectionHealth(activeCollection.name)
+      .then((res) => {
+        if (!cancelled) setHealthData(res);
+      })
+      .catch((err) => {
+        console.error('Failed to load collection health', err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingHealth(false);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -232,6 +255,104 @@ export const DashboardPanel = () => {
             />
           </Panel>
         </div>
+
+        {/* Collection Health & Embedding Norm Distribution (Phase 1) */}
+        <Panel>
+          <PanelHeader
+            title={
+              <div className="flex items-center gap-2">
+                <Activity className="text-accent h-4 w-4" />
+                <span>Collection Health & Embedding Norms</span>
+              </div>
+            }
+            description="L2 vector magnitude distribution, unit-normalization status, and numerical validation"
+            actions={
+              healthData?.result ? (
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={
+                      healthData.result.health_status === 'healthy'
+                        ? 'success'
+                        : healthData.result.health_status === 'warning'
+                          ? 'warning'
+                          : 'error'
+                    }
+                    size="xs"
+                    dot
+                  >
+                    {healthData.result.health_status === 'healthy'
+                      ? 'Healthy'
+                      : healthData.result.health_status === 'warning'
+                        ? 'Warning'
+                        : 'Action Required'}
+                  </Badge>
+                  <Badge variant="neutral" size="xs" mono>
+                    {healthData.result.is_unit_normalized
+                      ? 'Unit Normalized (||v|| ≈ 1.0)'
+                      : 'Varying Magnitudes'}
+                  </Badge>
+                  <Badge variant="neutral" size="xs" mono>
+                    {healthData.method === 'exact' ? 'Exact' : `Sampled (${healthData.computed_on.toLocaleString()})`}
+                  </Badge>
+                </div>
+              ) : null
+            }
+          />
+          <PanelBody className="space-y-4 py-4">
+            {loadingHealth && !healthData ? (
+              <div className="py-8">
+                <LoadingState label="Computing vector norms and health statistics…" />
+              </div>
+            ) : healthData?.result ? (
+              <>
+                {/* Health / Anomaly Alerts */}
+                {healthData.result.anomalies.length > 0 && (
+                  <div className="border-warning/40 bg-warning/10 text-text-primary flex items-start gap-2.5 rounded-md border p-3 text-[12px]">
+                    <AlertTriangle className="text-warning mt-0.5 h-4 w-4 shrink-0" />
+                    <div className="space-y-1">
+                      <span className="font-sans font-medium text-warning">
+                        Diagnostic Observations
+                      </span>
+                      <ul className="list-disc space-y-0.5 pl-4 text-text-secondary text-[11.5px]">
+                        {healthData.result.anomalies.map((anomaly, idx) => (
+                          <li key={idx}>{anomaly}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Norm Histogram */}
+                <div className="border-border bg-surface-subtle/30 rounded-md border p-3.5">
+                  <DistributionHistogram
+                    data={healthData.result.norm_histogram}
+                    label="L2 Embedding Magnitude Distribution"
+                    median={healthData.result.norms.median}
+                    p05={healthData.result.norms.p05}
+                    p95={healthData.result.norms.p95}
+                    height={130}
+                  />
+                </div>
+
+                {/* Exact Norm Percentiles Table */}
+                <StatsTable stats={healthData.result.norms} decimals={4} />
+
+                {/* Educational / Mathematical Explainability Footer */}
+                <div className="text-text-muted flex items-center justify-between font-mono text-[11px] pt-1">
+                  <span className="flex items-center gap-1.5">
+                    <Info className="h-3.5 w-3.5" />
+                    <span>Formula: ||v||₂ = √(∑ vᵢ²)</span>
+                  </span>
+                  <span>Execution: {healthData.execution_time_ms.toFixed(1)}ms</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-text-muted text-[12px] py-4 text-center">
+                Collection health diagnostics unavailable.
+              </p>
+            )}
+          </PanelBody>
+        </Panel>
 
         {/* Two-Column Technical Sections: HNSW Index & Embedding Config */}
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">

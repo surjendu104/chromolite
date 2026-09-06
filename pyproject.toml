@@ -12,7 +12,10 @@ keywords = ["chromadb", "vector-database", "observability"]
 dependencies = [
     "chromadb>=1.5.9",
     "fastapi>=0.140.0",
+    "numpy>=2.0.0",
     "pydantic>=2.13.4",
+    "scikit-learn>=1.9.0",
+    "scipy>=1.18.1",
     "typer>=0.27.0",
     "uvicorn[standard]>=0.51.0",
 ]
@@ -22,6 +25,7 @@ chromolite = "chromolite.cli:app"
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.16.0",
 ]
 
