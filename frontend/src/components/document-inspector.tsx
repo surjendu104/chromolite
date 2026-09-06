@@ -8,6 +8,8 @@ import type { Document } from '../store/collection.store';
 import { useThemeStore } from '../store/theme.store';
 import { SectionLabel } from './ui/section-label';
 import { CopyButton } from './ui/copy-button';
+import { Badge } from './ui/badge';
+import { Panel } from './ui/panel';
 
 type MetadataViewProps = {
   metadata: Record<string, unknown>;
@@ -19,27 +21,47 @@ export const MetadataView = ({ metadata }: MetadataViewProps) => {
   );
 
   if (entries.length === 0) {
-    return <p className="text-muted-foreground text-[12px]">No metadata</p>;
+    return (
+      <p className="text-text-muted py-1 font-sans text-[12px]">
+        No user metadata attached
+      </p>
+    );
   }
 
   return (
-    <dl className="space-y-1.5">
-      {entries.map(([key, value]) => (
-        <div key={key} className="grid grid-cols-[1fr_1.2fr] gap-3 text-[12px]">
-          <dt className="text-muted-foreground truncate">{key}</dt>
-          <dd
-            className={cn(
-              'font-medium break-words',
-              typeof value === 'boolean' || typeof value === 'number'
-                ? 'font-mono'
-                : '',
-            )}
-          >
-            {formatMetadataValue(value)}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div className="border-border bg-surface-subtle/50 overflow-hidden rounded-md border">
+      <table className="w-full text-left text-[12px]">
+        <tbody className="divide-border/60 divide-y">
+          {entries.map(([key, value]) => {
+            const isTechnical =
+              typeof value === 'boolean' ||
+              typeof value === 'number' ||
+              key.includes('id') ||
+              key.includes('time') ||
+              key.includes('date');
+
+            return (
+              <tr
+                key={key}
+                className="hover:bg-surface-subtle transition-colors"
+              >
+                <td className="text-text-muted w-1/3 truncate px-3 py-1.5 font-mono text-[11px] select-all">
+                  {key}
+                </td>
+                <td
+                  className={cn(
+                    'text-foreground px-3 py-1.5 break-words select-all',
+                    isTechnical ? 'font-mono text-[11.5px]' : 'font-sans',
+                  )}
+                >
+                  {formatMetadataValue(value)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 };
 
@@ -52,7 +74,7 @@ type DocumentInspectorProps = {
   variant?: 'panel' | 'overlay';
 };
 
-const DocumentInspector = ({
+export const DocumentInspector = ({
   document,
   index,
   onClose,
@@ -64,17 +86,19 @@ const DocumentInspector = ({
   const [jsonHtml, setJsonHtml] = useState('');
 
   const theme = useThemeStore((s) => s.theme);
-
   const title = getDocumentTitle(document, index);
-  // const jsonPayload = JSON.stringify(
-  //   {
-  //     id: document.id,
-  //     document: document.document,
-  //     metadata: document.metadata,
-  //   },
-  //   null,
-  //   2,
-  // );
+
+  const fullJson = JSON.stringify(
+    {
+      id: document.id,
+      document: document.document,
+      metadata: document.metadata,
+      embedding: document.embedding,
+    },
+    null,
+    2,
+  );
+
   const metadataJson = JSON.stringify(document.metadata, null, 2);
   const vectorJson = JSON.stringify(document.embedding);
 
@@ -82,7 +106,7 @@ const DocumentInspector = ({
   const contentWords = contentText.trim()
     ? contentText.trim().split(/\s+/).length
     : 0;
-  const isContentLong = contentText.length > 500;
+  const isContentLong = contentText.length > 350;
 
   const vectorPreview = document.embedding.slice(0, 64);
   const vectorMax = Math.max(...vectorPreview.map(Math.abs), 1e-6);
@@ -98,214 +122,219 @@ const DocumentInspector = ({
     };
   }, [metadataView, metadataJson, theme]);
 
-  const content = (
-    <>
-      <div className="border-border flex shrink-0 items-center justify-between border-b px-4 py-3">
-        <span className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-          Document
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close inspector"
-          className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-md p-1 transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
+  const inspectorContent = (
+    <div className="bg-surface flex h-full flex-col select-text">
+      {/* Header */}
+      <div className="border-border bg-surface flex shrink-0 items-center justify-between border-b px-4 py-3">
+        <div className="flex items-center gap-2">
+          <SectionLabel mono>Document Inspector</SectionLabel>
+          <Badge variant="neutral" size="xs" mono>
+            #{index}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-1">
+          <CopyButton text={fullJson} label="Copy Complete JSON" size="sm" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close inspector"
+            className="text-text-muted hover:text-foreground hover:bg-surface-subtle cursor-pointer rounded-md p-1 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="scrollbar-thumb-foreground/30 flex-1 scrollbar-thin overflow-y-auto px-4 py-4">
-        <div className="space-y-6">
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="text-foreground text-[14px] leading-snug font-medium">
-              {title}
-            </h2>
-            {/*<div className="flex shrink-0 items-center gap-1">
-              <CopyButton text={document.id} label="Copy ID" />
-              <CopyButton text={jsonPayload} label="Copy JSON" />
-            </div>*/}
-          </div>
-
-          <div>
-            <SectionLabel className="mb-2">ID</SectionLabel>
-            <div className="flex items-center gap-1">
-              <code className="text-muted-foreground font-mono text-[11px] break-all">
+      {/* Body Content */}
+      <div className="flex-1 space-y-5 overflow-y-auto p-4">
+        {/* Document Title & ID */}
+        <div>
+          <h2 className="text-foreground font-sans text-[15px] leading-snug font-semibold">
+            {title}
+          </h2>
+          <div className="border-border bg-surface-subtle mt-2 flex items-center justify-between gap-2 rounded-md border p-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-text-muted mb-0.5 font-mono text-[10px] tracking-wider uppercase">
+                Vector ID
+              </div>
+              <code className="text-foreground font-mono text-[11px] break-all select-all">
                 {document.id}
               </code>
             </div>
+            <CopyButton text={document.id} label="Copy ID" size="sm" />
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <SectionLabel mono>Document Content</SectionLabel>
+            <span className="text-text-muted font-mono text-[11px]">
+              {contentWords} words ({contentText.length} chars)
+            </span>
           </div>
 
-          <div>
-            <SectionLabel className="mb-2">Content</SectionLabel>
-            <div className="border-border bg-muted/30 overflow-hidden rounded-md border">
-              <div className="border-border/60 flex items-center justify-between gap-2 border-b px-3 py-1.5">
-                <span className="text-muted-foreground text-[11px] tabular-nums">
-                  {contentWords} words
-                </span>
-                <CopyButton text={contentText} label="Copy content" />
-              </div>
-              <div className="p-3">
-                <div
-                  className={cn(
-                    'relative',
-                    isContentLong &&
-                      !contentExpanded &&
-                      'max-h-40 overflow-hidden',
-                  )}
-                >
-                  <div className="text-foreground text-[13px] leading-relaxed break-words whitespace-pre-wrap">
-                    {contentText || (
-                      <span className="text-muted-foreground italic">
-                        Empty
-                      </span>
-                    )}
-                  </div>
-                  {isContentLong && !contentExpanded && (
-                    <div className="from-inspector pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t" />
-                  )}
-                </div>
-                {isContentLong && (
-                  <button
-                    type="button"
-                    onClick={() => setContentExpanded(!contentExpanded)}
-                    className="text-accent-interactive mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium transition-colors hover:opacity-80"
-                  >
-                    {contentExpanded ? (
-                      <>
-                        Show less <ChevronUp className="h-3 w-3" />
-                      </>
-                    ) : (
-                      <>
-                        Show more <ChevronDown className="h-3 w-3" />
-                      </>
-                    )}
-                  </button>
+          <Panel className="bg-surface-subtle/40">
+            <div className="border-border/60 bg-surface-subtle/80 flex items-center justify-between border-b px-3 py-1.5">
+              <span className="text-text-muted font-mono text-[10px] tracking-wider uppercase">
+                Raw Text
+              </span>
+              <CopyButton text={contentText} label="Copy text" size="sm" />
+            </div>
+            <div className="p-3">
+              <div
+                className={cn(
+                  'text-foreground relative font-sans text-[12.5px] leading-relaxed break-words whitespace-pre-wrap',
+                  isContentLong &&
+                    !contentExpanded &&
+                    'max-h-48 overflow-hidden',
+                )}
+              >
+                {contentText || (
+                  <span className="text-text-muted italic">Empty document</span>
+                )}
+                {isContentLong && !contentExpanded && (
+                  <div className="from-surface pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t to-transparent" />
                 )}
               </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <SectionLabel>Metadata</SectionLabel>
-              <div className="bg-muted inline-flex items-center rounded-md p-0.5">
-                {(['parsed', 'json'] as const).map((view) => (
-                  <button
-                    key={view}
-                    type="button"
-                    onClick={() => setMetadataView(view)}
-                    aria-pressed={metadataView === view}
-                    className={cn(
-                      'relative rounded px-2 py-0.5 text-[11px] transition-colors',
-                      metadataView === view
-                        ? 'text-foreground'
-                        : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {metadataView === view && (
-                      <motion.div
-                        layoutId={`${variant}-metadata-pill`}
-                        className="bg-background absolute inset-0 rounded shadow-sm"
-                        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                      />
-                    )}
-                    <span className="relative z-10">
-                      {view === 'parsed' ? 'Parsed' : 'JSON'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {metadataView === 'parsed' ? (
-              <MetadataView metadata={document.metadata} />
-            ) : (
-              <div className="border-border bg-muted/30 overflow-hidden rounded-md border">
-                <div className="border-border/60 flex items-center justify-between border-b px-3 py-1.5">
-                  <span className="text-muted-foreground text-[11px]">
-                    Raw metadata
-                  </span>
-                  <CopyButton text={metadataJson} label="Copy metadata JSON" />
-                </div>
-                <div className="scrollbar-thumb-foreground/30 max-h-72 scrollbar-thin overflow-y-auto p-3 [&_.shiki]:!m-0 [&_.shiki]:!bg-transparent [&_.shiki]:!p-0 [&_.shiki>code]:!font-mono">
-                  {jsonHtml ? (
-                    <div dangerouslySetInnerHTML={{ __html: jsonHtml }} />
+              {isContentLong && (
+                <button
+                  type="button"
+                  onClick={() => setContentExpanded(!contentExpanded)}
+                  className="text-accent hover:text-accent-hover mt-2 inline-flex cursor-pointer items-center gap-1 font-sans text-[11.5px] font-medium transition-colors"
+                >
+                  {contentExpanded ? (
+                    <>
+                      Show less <ChevronUp className="h-3 w-3" />
+                    </>
                   ) : (
-                    <div className="bg-muted h-4 w-24 animate-pulse rounded" />
+                    <>
+                      Show full content <ChevronDown className="h-3 w-3" />
+                    </>
                   )}
-                </div>
-              </div>
-            )}
+                </button>
+              )}
+            </div>
+          </Panel>
+        </div>
+
+        {/* Metadata Section */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <SectionLabel mono>Metadata</SectionLabel>
+            <div className="border-border bg-surface-subtle inline-flex items-center rounded-md border p-0.5">
+              {(['parsed', 'json'] as const).map((view) => (
+                <button
+                  key={view}
+                  type="button"
+                  onClick={() => setMetadataView(view)}
+                  className={cn(
+                    'cursor-pointer rounded px-2 py-0.5 font-sans text-[11px] transition-colors',
+                    metadataView === view
+                      ? 'bg-surface text-foreground shadow-subtle font-medium'
+                      : 'text-text-muted hover:text-foreground',
+                  )}
+                >
+                  {view === 'parsed' ? 'Table' : 'JSON'}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {document.embedding.length > 0 && (
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <SectionLabel>Embedding</SectionLabel>
-                <CopyButton text={vectorJson} label="Copy vector" />
+          {metadataView === 'parsed' ? (
+            <MetadataView metadata={document.metadata} />
+          ) : (
+            <Panel className="bg-surface-subtle/40">
+              <div className="border-border/60 bg-surface-subtle/80 flex items-center justify-between border-b px-3 py-1.5">
+                <span className="text-text-muted font-mono text-[10px] tracking-wider uppercase">
+                  JSON payload
+                </span>
+                <CopyButton text={metadataJson} label="Copy JSON" size="sm" />
               </div>
-              <div className="border-border bg-muted/30 overflow-hidden rounded-md border">
-                <div className="flex items-center justify-between gap-2 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-foreground font-mono text-[12px] tabular-nums">
-                      {document.embedding.length} dimensions
-                    </span>
-                    <span className="text-muted-foreground text-[11px]">
-                      · {vectorPreview.length} shown
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowVector(!showVector)}
-                    className="text-muted-foreground hover:text-accent-interactive inline-flex items-center gap-0.5 text-[11px] transition-colors"
-                  >
-                    {showVector ? (
-                      <>
-                        Hide vector <ChevronUp className="h-3 w-3" />
-                      </>
-                    ) : (
-                      <>
-                        View vector <ChevronDown className="h-3 w-3" />
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div
-                  className="border-border/60 flex h-9 items-end gap-px border-t px-3 py-1.5"
-                  aria-hidden
-                >
-                  {vectorPreview.map((value, i) => {
-                    const ratio = Math.abs(value) / vectorMax;
-                    const isPeak = Math.abs(value) === vectorMax;
-                    return (
-                      <span
-                        key={i}
-                        className={cn(
-                          'flex-1 rounded-[1px]',
-                          isPeak
-                            ? 'bg-accent-interactive/70'
-                            : 'bg-foreground/25',
-                        )}
-                        style={{ height: `${Math.max(8, ratio * 100)}%` }}
-                      />
-                    );
-                  })}
-                </div>
-
-                {showVector && (
-                  <div className="border-border/60 scrollbar-thumb-foreground/30 max-h-32 scrollbar-thin overflow-y-auto border-t px-3 py-2">
-                    <code className="text-muted-foreground font-mono text-[10px] leading-relaxed break-all">
-                      [{document.embedding.map((v) => v.toFixed(4)).join(', ')}]
-                    </code>
-                  </div>
+              <div className="max-h-60 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed [&_.shiki]:!m-0 [&_.shiki]:!bg-transparent [&_.shiki]:!p-0">
+                {jsonHtml ? (
+                  <div dangerouslySetInnerHTML={{ __html: jsonHtml }} />
+                ) : (
+                  <div className="bg-surface-subtle h-4 w-24 animate-pulse rounded" />
                 )}
               </div>
-            </div>
+            </Panel>
           )}
         </div>
+
+        {/* Embedding Section */}
+        {document.embedding && document.embedding.length > 0 && (
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <SectionLabel mono>Embedding Vector</SectionLabel>
+              <CopyButton
+                text={vectorJson}
+                label="Copy float array"
+                size="sm"
+              />
+            </div>
+
+            <Panel className="bg-surface-subtle/40">
+              <div className="border-border/60 bg-surface-subtle/80 flex items-center justify-between border-b px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-foreground font-mono text-[12px] font-semibold tabular-nums">
+                    {document.embedding.length} dimensions
+                  </span>
+                  <span className="text-text-muted font-mono text-[10.5px]">
+                    ({vectorPreview.length} shown)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowVector(!showVector)}
+                  className="text-text-secondary hover:text-foreground inline-flex cursor-pointer items-center gap-0.5 font-sans text-[11.5px] font-medium transition-colors"
+                >
+                  {showVector ? (
+                    <>
+                      Hide floats <ChevronUp className="h-3 w-3" />
+                    </>
+                  ) : (
+                    <>
+                      View array <ChevronDown className="h-3 w-3" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Sparkline Visualizer */}
+              <div
+                className="bg-surface flex h-10 items-end gap-px px-3 py-2"
+                aria-hidden
+              >
+                {vectorPreview.map((value, i) => {
+                  const ratio = Math.abs(value) / vectorMax;
+                  const isPeak = Math.abs(value) === vectorMax;
+                  return (
+                    <span
+                      key={i}
+                      title={`dim[${i}]: ${value.toFixed(4)}`}
+                      className={cn(
+                        'flex-1 rounded-[1px] transition-all',
+                        isPeak
+                          ? 'bg-accent'
+                          : 'bg-foreground/20 hover:bg-foreground/40',
+                      )}
+                      style={{ height: `${Math.max(10, ratio * 100)}%` }}
+                    />
+                  );
+                })}
+              </div>
+
+              {showVector && (
+                <div className="border-border/60 bg-surface text-text-secondary max-h-36 overflow-y-auto border-t p-3 font-mono text-[10.5px] leading-relaxed break-all select-all">
+                  [{document.embedding.map((v) => v.toFixed(4)).join(', ')}]
+                </div>
+              )}
+            </Panel>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 
   if (variant === 'overlay') {
@@ -315,23 +344,23 @@ const DocumentInspector = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
+        transition={{ duration: 0.12 }}
       >
         <div
-          className="bg-foreground/10 absolute inset-0"
+          className="bg-background/50 fixed inset-0 backdrop-blur-xs"
           onClick={onClose}
           aria-hidden
         />
         <motion.aside
-          className="bg-inspector border-border absolute inset-y-0 right-0 flex w-full max-w-[min(100vw,480px)] flex-col border-l shadow-lg"
+          className="border-border bg-surface shadow-popover absolute inset-y-0 right-0 flex w-full max-w-[min(100vw,440px)] flex-col border-l"
           role="dialog"
           aria-label="Document inspector"
-          initial={{ x: 32 }}
+          initial={{ x: '100%' }}
           animate={{ x: 0 }}
-          exit={{ x: 32 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          exit={{ x: '100%' }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
         >
-          {content}
+          {inspectorContent}
         </motion.aside>
       </motion.div>
     );
@@ -339,15 +368,15 @@ const DocumentInspector = ({
 
   return (
     <motion.aside
-      className="bg-inspector border-border hidden w-[min(480px,40vw)] shrink-0 flex-col border-l lg:flex"
+      className="border-border bg-surface hidden w-[min(440px,38vw)] shrink-0 flex-col border-l lg:flex"
       role="complementary"
       aria-label="Document inspector"
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 16 }}
-      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, width: 0 }}
+      animate={{ opacity: 1, width: 'min(440px, 38vw)' }}
+      exit={{ opacity: 0, width: 0 }}
+      transition={{ duration: 0.14, ease: 'easeOut' }}
     >
-      {content}
+      {inspectorContent}
     </motion.aside>
   );
 };

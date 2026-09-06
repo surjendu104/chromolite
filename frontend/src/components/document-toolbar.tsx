@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Search,
   Filter,
   ArrowUpDown,
   RefreshCw,
@@ -11,6 +10,8 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { SortOption } from '../lib/document-utils';
+import { SearchInput } from './ui/input';
+import { Button } from './ui/button';
 
 export type ActiveFilter = { key: string; value: string };
 
@@ -35,7 +36,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'content-asc', label: 'Content (A → Z)' },
 ];
 
-const DocumentToolbar = ({
+export const DocumentToolbar = ({
   searchQuery,
   onSearchChange,
   sort,
@@ -63,88 +64,99 @@ const DocumentToolbar = ({
   };
 
   return (
-    <div className="border-border shrink-0 space-y-2 border-b px-5 py-3">
+    <div className="border-border bg-surface shrink-0 space-y-2 border-b px-5 py-2.5">
       <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
-          <input
+        <div className="min-w-0 flex-1">
+          <SearchInput
             ref={searchInputRef}
-            type="search"
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search documents…"
-            aria-label="Search documents"
-            className={cn(
-              'border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-md border py-1.5 pr-12 pl-8 text-[13px]',
-              'focus:border-ring focus:ring-ring/30 focus:ring-1 focus:outline-none',
-            )}
+            onChange={onSearchChange}
+            onClear={() => onSearchChange('')}
+            placeholder="Search documents and metadata..."
+            shortcut="/"
           />
-          <kbd className="text-muted-foreground border-border bg-muted pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-1 py-0.5 font-mono text-[10px]">
-            /
-          </kbd>
         </div>
 
+        {/* Filter Popover */}
         <div className="relative" ref={filterRef}>
-          <button
-            type="button"
+          <Button
+            size="md"
+            variant="secondary"
             onClick={() => {
               setFilterOpen(!filterOpen);
               setSortOpen(false);
             }}
+            leftIcon={<Filter className="text-text-muted h-3.5 w-3.5" />}
             className={cn(
-              'border-border hover:bg-muted inline-flex h-8 shrink-0 items-center gap-1 rounded-md border px-2.5 text-[12px] transition-colors',
-              activeFilters.length > 0 && 'border-ring/40',
+              'h-8 text-[12.5px]',
+              activeFilters.length > 0 &&
+                'border-accent/60 text-accent font-medium',
             )}
           >
-            <Filter className="h-3.5 w-3.5" />
             <span>Filter</span>
-          </button>
+            {activeFilters.length > 0 && (
+              <span className="bg-accent-subtle text-accent py-0.2 rounded px-1.5 font-mono text-[10px]">
+                {activeFilters.length}
+              </span>
+            )}
+          </Button>
 
           {filterOpen && (
             <>
               <div
-                className="fixed inset-0 z-10"
+                className="fixed inset-0 z-20"
                 onClick={() => setFilterOpen(false)}
               />
               <motion.div
-                className="border-border bg-popover text-popover-foreground absolute top-full right-0 z-20 mt-1 w-56 rounded-lg border p-2 shadow-md"
+                className="border-border bg-surface-elevated shadow-popover absolute top-full right-0 z-30 mt-1 w-60 rounded-lg border p-2"
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.12 }}
               >
                 {filterKeys.length === 0 ? (
-                  <p className="text-muted-foreground px-2 py-1.5 text-[12px]">
+                  <p className="text-text-muted px-2 py-2 text-center font-sans text-[12px]">
                     No metadata fields on this page
                   </p>
                 ) : !filterKey ? (
-                  <div className="scrollbar-thumb-foreground/30 max-h-48 scrollbar-thin overflow-y-auto">
-                    {filterKeys.map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setFilterKey(key)}
-                        className="hover:bg-muted w-full rounded-md px-2 py-1.5 text-left text-[12px]"
-                      >
-                        {key}
-                      </button>
-                    ))}
+                  <div>
+                    <div className="text-text-muted mb-1 px-2 py-1 font-mono text-[10px] tracking-wider uppercase">
+                      Select Filter Field
+                    </div>
+                    <div className="max-h-48 space-y-0.5 overflow-y-auto">
+                      {filterKeys.map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setFilterKey(key)}
+                          className="text-foreground hover:bg-surface-subtle flex w-full cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-left text-[12px] transition-colors"
+                        >
+                          <span className="font-sans">{key}</span>
+                          <span className="text-text-muted font-mono text-[10px]">
+                            {availableFilterKeys[key]?.length} values
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div>
                     <button
                       type="button"
                       onClick={() => setFilterKey('')}
-                      className="text-muted-foreground hover:text-foreground mb-1 text-[11px]"
+                      className="text-text-secondary hover:text-foreground mb-1.5 flex cursor-pointer items-center gap-1 text-[11px] font-medium transition-colors"
                     >
-                      ← {filterKey}
+                      <span>←</span> Back to fields
                     </button>
-                    <div className="scrollbar-thumb-foreground/30 max-h-48 scrollbar-thin overflow-y-auto">
+                    <div className="text-text-muted border-border mb-1 border-t px-1 py-1 font-mono text-[10px] tracking-wider uppercase">
+                      {filterKey} values
+                    </div>
+                    <div className="max-h-48 space-y-0.5 overflow-y-auto">
                       {filterValues.map((value) => (
                         <button
                           key={value}
                           type="button"
                           onClick={() => handleAddFilter(filterKey, value)}
-                          className="hover:bg-muted w-full rounded-md px-2 py-1.5 text-left font-mono text-[12px]"
+                          className="text-foreground hover:bg-surface-subtle flex w-full cursor-pointer items-center truncate rounded-md px-2 py-1.5 text-left font-mono text-[12px] transition-colors"
                         >
                           {value}
                         </button>
@@ -157,30 +169,33 @@ const DocumentToolbar = ({
           )}
         </div>
 
+        {/* Sort Selector */}
         <div className="relative">
-          <button
-            type="button"
+          <Button
+            size="md"
+            variant="secondary"
             onClick={() => {
               setSortOpen(!sortOpen);
               setFilterOpen(false);
             }}
-            className="border-border hover:bg-muted inline-flex h-8 shrink-0 items-center gap-1 rounded-md border px-2.5 text-[12px] transition-colors"
+            leftIcon={<ArrowUpDown className="text-text-muted h-3.5 w-3.5" />}
+            rightIcon={<ChevronDown className="text-text-muted h-3 w-3" />}
+            className="h-8 text-[12.5px]"
           >
-            <ArrowUpDown className="h-3.5 w-3.5" />
-            <ChevronDown className="h-3 w-3 opacity-50" />
-          </button>
+            <span>Sort</span>
+          </Button>
 
           {sortOpen && (
             <>
               <div
-                className="fixed inset-0 z-10"
+                className="fixed inset-0 z-20"
                 onClick={() => setSortOpen(false)}
               />
               <motion.div
-                className="border-border bg-popover absolute top-full right-0 z-20 mt-1 w-44 rounded-lg border p-1 shadow-md"
+                className="border-border bg-surface-elevated shadow-popover absolute top-full right-0 z-30 mt-1 w-48 rounded-lg border p-1"
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.12 }}
               >
                 {SORT_OPTIONS.map((opt) => (
                   <button
@@ -191,9 +206,10 @@ const DocumentToolbar = ({
                       setSortOpen(false);
                     }}
                     className={cn(
-                      'hover:bg-muted w-full rounded-md px-2 py-1.5 text-left text-[12px]',
-                      sort === opt.value &&
-                        'text-accent-interactive font-medium',
+                      'flex w-full cursor-pointer items-center rounded-md px-2.5 py-1.5 text-left font-sans text-[12px] transition-colors',
+                      sort === opt.value
+                        ? 'bg-surface-subtle text-accent font-medium'
+                        : 'text-foreground hover:bg-surface-subtle',
                     )}
                   >
                     {opt.label}
@@ -204,22 +220,31 @@ const DocumentToolbar = ({
           )}
         </div>
 
-        <button
-          type="button"
+        {/* Refresh Button */}
+        <Button
+          size="md"
+          variant="secondary"
           onClick={onRefresh}
           disabled={isRefreshing}
           aria-label="Refresh documents"
-          title="Refresh"
-          className="border-border hover:bg-muted inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors disabled:opacity-50"
+          title="Refresh collection documents"
+          className="h-8 w-8 px-0"
         >
           <RefreshCw
-            className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')}
+            className={cn(
+              'text-text-muted h-3.5 w-3.5',
+              isRefreshing && 'text-accent animate-spin',
+            )}
           />
-        </button>
+        </Button>
       </div>
 
-      {(activeFilters.length > 0 || filterKeys.length > 0) && (
-        <div className="flex flex-wrap items-center gap-1.5">
+      {/* Active Filters Display */}
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="text-text-muted mr-1 font-mono text-[10px] tracking-wider uppercase">
+            Active filters:
+          </span>
           <AnimatePresence initial={false}>
             {activeFilters.map((filter) => (
               <motion.span
@@ -228,32 +253,34 @@ const DocumentToolbar = ({
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.14 }}
-                className="border-border bg-muted inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]"
+                transition={{ duration: 0.12 }}
+                className="border-accent-border bg-accent-subtle inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px]"
               >
-                <span className="text-muted-foreground">{filter.key}:</span>
-                <span className="font-medium">{filter.value}</span>
+                <span className="text-text-secondary font-sans">
+                  {filter.key}:
+                </span>
+                <span className="text-foreground font-mono font-medium">
+                  {filter.value}
+                </span>
                 <button
                   type="button"
                   onClick={() => onRemoveFilter(filter.key)}
                   aria-label={`Remove filter ${filter.key}`}
-                  className="text-muted-foreground hover:text-foreground ml-0.5"
+                  className="text-text-muted hover:text-foreground cursor-pointer transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </motion.span>
             ))}
           </AnimatePresence>
-          {filterKeys.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setFilterOpen(true)}
-              className="text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5 text-[11px] transition-colors"
-            >
-              <Plus className="h-3 w-3" />
-              Filter
-            </button>
-          )}
+
+          <button
+            type="button"
+            onClick={() => setFilterOpen(true)}
+            className="text-text-muted hover:text-foreground ml-1 inline-flex cursor-pointer items-center gap-1 font-sans text-[11px] transition-colors"
+          >
+            <Plus className="h-3 w-3" /> Add filter
+          </button>
         </div>
       )}
     </div>

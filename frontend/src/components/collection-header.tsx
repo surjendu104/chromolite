@@ -1,6 +1,8 @@
 import { useCollectionStore } from '../store/collection.store';
+import { Badge } from './ui/badge';
+import { CopyButton } from './ui/copy-button';
 
-const CollectionHeader = () => {
+export const CollectionHeader = () => {
   const activeCollection = useCollectionStore((s) => s.activeCollection);
   const details = useCollectionStore((s) => s.activeCollectionDetails);
   const pagination = useCollectionStore((s) => s.pagination);
@@ -10,23 +12,57 @@ const CollectionHeader = () => {
 
   const total = details?.document_count ?? pagination.total;
   const embeddingDim =
-    documents.length > 0 ? documents[0].embedding.length : null;
+    documents.length > 0
+      ? documents[0].embedding.length
+      : ((details?.metadata?.embedding_dimension as number | undefined) ??
+        null);
+
+  const configHnsw = (
+    details?.configuration as { hnsw?: { space?: string } } | undefined
+  )?.hnsw;
+  const metricSpace = configHnsw?.space || 'cosine';
 
   return (
-    <header className="border-border shrink-0 border-b px-5 py-4">
-      <h1 className="text-foreground text-[15px] font-semibold tracking-tight">
-        {activeCollection.name}
-      </h1>
-      <p className="text-muted-foreground mt-0.5 text-[13px]">
-        {total.toLocaleString()} document{total !== 1 ? 's' : ''}
+    <header className="border-border bg-surface flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-text-muted font-mono text-[11px] tracking-wider uppercase">
+            COLLECTION /
+          </span>
+          <h1 className="text-foreground truncate font-sans text-[15px] font-semibold tracking-tight">
+            {activeCollection.name}
+          </h1>
+        </div>
+        <CopyButton
+          text={activeCollection.name}
+          label="Copy collection name"
+          size="sm"
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="neutral" size="sm" mono>
+          {total.toLocaleString()} vectors
+        </Badge>
+
         {embeddingDim !== null && (
-          <>
-            <span className="mx-1.5 opacity-40">·</span>
-            <span className="font-mono">{embeddingDim}</span>
-            <span>-dimensional embeddings</span>
-          </>
+          <Badge variant="neutral" size="sm" mono>
+            {embeddingDim} dim
+          </Badge>
         )}
-      </p>
+
+        {metricSpace && (
+          <Badge variant="accent" size="sm" mono>
+            {metricSpace}
+          </Badge>
+        )}
+
+        {details?.database && (
+          <Badge variant="neutral" size="sm">
+            db: {details.database}
+          </Badge>
+        )}
+      </div>
     </header>
   );
 };

@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '../lib/utils';
 import type { Pagination } from '../store/collection.store';
+import { Button } from './ui/button';
 
 const PAGE_SIZE_OPTIONS = [10, 50, 100];
 
@@ -11,7 +11,7 @@ type DocumentPaginationProps = {
   onPageChange: (page: number) => void;
 };
 
-const DocumentPagination = ({
+export const DocumentPagination = ({
   pagination,
   pageSize,
   onPageSizeChange,
@@ -23,13 +23,15 @@ const DocumentPagination = ({
   const end = Math.min(pagination.page * pageSize, pagination.total);
 
   return (
-    <div className="border-border text-muted-foreground flex shrink-0 items-center justify-between border-t px-5 py-2 text-[12px]">
+    <footer className="border-border bg-surface text-text-secondary flex shrink-0 items-center justify-between border-t px-5 py-2 text-[12px] select-none">
+      {/* Page Size Selection */}
       <div className="flex items-center gap-2">
+        <span className="text-text-muted font-sans text-[11.5px]">Show:</span>
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
           aria-label="Rows per page"
-          className="border-border bg-background text-foreground focus:ring-ring cursor-pointer rounded-md border px-1.5 py-0.5 text-[12px] outline-none focus:ring-1"
+          className="border-border bg-surface text-foreground focus:border-accent cursor-pointer rounded-md border px-2 py-0.5 font-mono text-[11.5px] focus:outline-none"
         >
           {PAGE_SIZE_OPTIONS.map((size) => (
             <option key={size} value={size}>
@@ -39,44 +41,51 @@ const DocumentPagination = ({
         </select>
       </div>
 
-      <span className="tabular-nums">
-        {start}–{end} of {pagination.total.toLocaleString()}
-      </span>
+      {/* Range Status */}
+      <div className="text-text-secondary font-mono text-[11.5px] tabular-nums">
+        <span className="text-foreground font-medium">
+          {start.toLocaleString()}
+        </span>
+        <span className="text-text-muted mx-1">–</span>
+        <span className="text-foreground font-medium">
+          {end.toLocaleString()}
+        </span>
+        <span className="text-text-muted mx-1.5">of</span>
+        <span className="text-foreground font-medium">
+          {pagination.total.toLocaleString()}
+        </span>
+        <span className="text-text-muted ml-1">items</span>
+      </div>
 
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
+      {/* Page Controls */}
+      <div className="flex items-center gap-1.5">
+        <Button
+          size="xs"
+          variant="outline"
           onClick={() => onPageChange(pagination.page - 1)}
           disabled={!pagination.hasPrevious}
           aria-label="Previous page"
-          className={cn(
-            'inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-            pagination.hasPrevious
-              ? 'hover:bg-muted text-foreground'
-              : 'cursor-not-allowed opacity-30',
-          )}
+          className="h-6 w-6 p-0"
         >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <span className="min-w-[48px] text-center font-mono tabular-nums">
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </Button>
+
+        <span className="text-foreground px-1 font-mono text-[11px] tabular-nums">
           {pagination.page} / {pagination.totalPages}
         </span>
-        <button
-          type="button"
+
+        <Button
+          size="xs"
+          variant="outline"
           onClick={() => onPageChange(pagination.page + 1)}
           disabled={!pagination.hasNext}
           aria-label="Next page"
-          className={cn(
-            'inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-            pagination.hasNext
-              ? 'hover:bg-muted text-foreground'
-              : 'cursor-not-allowed opacity-30',
-          )}
+          className="h-6 w-6 p-0"
         >
-          <ChevronRight className="h-4 w-4" />
-        </button>
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
       </div>
-    </div>
+    </footer>
   );
 };
 

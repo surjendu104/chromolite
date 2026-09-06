@@ -1,21 +1,22 @@
 import { create } from 'zustand';
 
-type Collection = {
+export type Collection = {
   id: string;
   name: string;
   database: string;
   tenant: string;
 };
 
-type CollectionDetails = Collection & {
+export type CollectionDetails = Collection & {
+  metadata?: Record<string, unknown> | null;
   schema: Record<string, unknown>;
   configuration: Record<string, unknown>;
-  configuration_json: Record<string, unknown>;
+  configuration_json?: Record<string, unknown>;
   document_count: number;
   fork_count: Record<string, unknown>;
 };
 
-type DocumentMetadata = Record<string, unknown>;
+export type DocumentMetadata = Record<string, unknown>;
 
 export type Document = {
   id: string;

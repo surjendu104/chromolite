@@ -19,8 +19,11 @@ import DocumentToolbar, { type ActiveFilter } from '../document-toolbar';
 import DocumentRow from '../document-row';
 import DocumentPagination from '../document-pagination';
 import DocumentInspector from '../document-inspector';
+import { LoadingState } from '../ui/loading-state';
+import { EmptyState } from '../ui/empty-state';
+import { ErrorState } from '../ui/error-state';
 
-const DocumentPanel = () => {
+export const DocumentPanel = () => {
   const activeCollection = useCollectionStore((s) => s.activeCollection);
   const documents = useCollectionStore((s) => s.documents);
   const setDocuments = useCollectionStore((s) => s.setDocuments);
@@ -66,8 +69,8 @@ const DocumentPanel = () => {
         setDocuments(response.data);
         setPagination(toPagination(response.pagination));
       } catch (err) {
-        console.error(err);
-        setError('The collection could not be read.');
+        console.error('Failed to load documents', err);
+        setError('The ChromaDB collection documents could not be read.');
       } finally {
         setIsLoading(false);
       }
@@ -88,7 +91,9 @@ const DocumentPanel = () => {
       .then((res) => {
         if (!cancelled) setActiveCollectionDetails(res);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error('Failed to update details', err);
+      });
     return () => {
       cancelled = true;
     };
@@ -96,7 +101,7 @@ const DocumentPanel = () => {
 
   useEffect(() => {
     if (activeCollection) {
-      // Data fetching is a legitimate effect; state updates follow the request.
+      // Data fetching effect
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchDocuments(1, pageSize);
     }
@@ -182,12 +187,11 @@ const DocumentPanel = () => {
 
   if (!activeCollection) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground text-[13px]">
-            Select a collection to explore documents
-          </p>
-        </div>
+      <div className="flex h-full items-center justify-center p-6">
+        <EmptyState
+          title="No collection selected"
+          description="Select a ChromaDB collection from the sidebar to inspect its documents and embeddings."
+        />
       </div>
     );
   }
@@ -202,7 +206,8 @@ const DocumentPanel = () => {
     !isLoading;
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="bg-background flex h-full min-h-0">
+      {/* Document Explorer Main View */}
       <div className="flex min-w-0 flex-1 flex-col">
         <CollectionHeader />
 
@@ -220,58 +225,42 @@ const DocumentPanel = () => {
           searchInputRef={searchInputRef}
         />
 
-        <div
-          ref={listRef}
-          className="scrollbar-thumb-foreground/30 min-h-0 flex-1 scrollbar-thin overflow-y-auto"
-        >
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto">
           {error && (
-            <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
-              <p className="text-foreground text-[14px] font-medium">
-                Couldn&apos;t load documents
-              </p>
-              <p className="text-muted-foreground text-[13px]">{error}</p>
-              <button
-                type="button"
-                onClick={() => fetchDocuments(pagination.page, pageSize)}
-                className="border-border hover:bg-muted mt-2 rounded-md border px-3 py-1 text-[12px] transition-colors"
-              >
-                Retry
-              </button>
+            <div className="py-12">
+              <ErrorState
+                title="Could not read documents"
+                message={error}
+                onRetry={() => fetchDocuments(pagination.page, pageSize)}
+              />
             </div>
           )}
 
-          {isLoading && !error && (
-            <div className="space-y-0 px-0 py-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="border-border border-b px-5 py-4">
-                  <div className="bg-muted mb-2 h-4 w-1/3 animate-pulse rounded" />
-                  <div className="bg-muted/60 mb-1 h-3 w-full animate-pulse rounded" />
-                  <div className="bg-muted/40 h-3 w-2/3 animate-pulse rounded" />
-                </div>
-              ))}
-            </div>
-          )}
+          {isLoading && !error && <LoadingState variant="skeleton" rows={6} />}
 
           {showEmptyCollection && (
-            <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
-              <FileText className="text-muted-foreground h-6 w-6 opacity-50" />
-              <p className="text-foreground text-[14px] font-medium">
-                No documents
-              </p>
-              <p className="text-muted-foreground text-[13px]">
-                This collection doesn&apos;t contain any documents yet.
-              </p>
+            <div className="py-16">
+              <EmptyState
+                icon={FileText}
+                title="Empty collection"
+                description="This collection does not contain any stored vectors or documents."
+              />
             </div>
           )}
 
           {showEmptySearch && (
-            <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
-              <p className="text-foreground text-[14px] font-medium">
-                No matching documents
-              </p>
-              <p className="text-muted-foreground text-[13px]">
-                Try a different search or remove a filter.
-              </p>
+            <div className="py-16">
+              <EmptyState
+                title="No matching documents"
+                description="No records match the current query or active metadata filters."
+                action={{
+                  label: 'Clear search filters',
+                  onClick: () => {
+                    setSearchQuery('');
+                    setActiveFilters([]);
+                  },
+                }}
+              />
             </div>
           )}
 
@@ -303,6 +292,7 @@ const DocumentPanel = () => {
         )}
       </div>
 
+      {/* Right Drawer Inspector (Desktop Panel & Mobile Overlay) */}
       <AnimatePresence>
         {selectedDocument && (
           <DocumentInspector
