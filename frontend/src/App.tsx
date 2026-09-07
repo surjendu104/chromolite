@@ -195,7 +195,7 @@ function App() {
     <MotionConfig reducedMotion="user">
       <div className="bg-background text-foreground flex h-screen w-screen overflow-hidden font-sans">
         <Sidebar onOpenCommandPalette={openCommandPalette} />
-        <RightPanel onOpenCommandPalette={openCommandPalette} />
+        <RightPanel />
         <AnimatePresence>
           {commandOpen && (
             <CommandPalette onClose={closeCommandPalette} commands={commands} />

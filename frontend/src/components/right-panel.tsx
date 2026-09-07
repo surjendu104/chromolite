@@ -4,8 +4,7 @@ import {
   FileText,
   Compass,
   Sun,
-  Moon,
-  Search,
+  Moon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSidebarStore, type TabId } from '../store/sidebar.store';
@@ -32,11 +31,7 @@ const PRIMARY_TABS: {
   { id: 'embeddings', name: 'Embeddings', icon: Compass },
 ];
 
-interface RightPanelProps {
-  onOpenCommandPalette?: () => void;
-}
-
-export const RightPanel = ({ onOpenCommandPalette }: RightPanelProps) => {
+export const RightPanel = () => {
   const { activeTab, setActiveTab, toggleCollapsed } = useSidebarStore();
   const activeCollection = useCollectionStore((s) => s.activeCollection);
   const theme = useThemeStore((s) => s.theme);
