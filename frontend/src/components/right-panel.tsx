@@ -92,7 +92,7 @@ export const RightPanel = ({ onOpenCommandPalette }: RightPanelProps) => {
         </div>
 
         <div className="flex items-center gap-1.5">
-          {onOpenCommandPalette && (
+          {/*{onOpenCommandPalette && (
             <button
               type="button"
               onClick={onOpenCommandPalette}
@@ -106,7 +106,7 @@ export const RightPanel = ({ onOpenCommandPalette }: RightPanelProps) => {
                 ⌘K
               </kbd>
             </button>
-          )}
+          )}*/}
 
           <div className="bg-border mx-0.5 h-3.5 w-px" />
 

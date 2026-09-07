@@ -299,7 +299,7 @@ export const Sidebar = ({ onOpenCommandPalette }: SidebarProps) => {
           <Command className="text-text-muted h-3.5 w-3.5" />
           <span className="flex-1 text-left font-sans">Command menu</span>
           <kbd className="border-border bg-surface text-text-muted inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 font-mono text-[10px]">
-            <span>⌘K</span>
+            <span>⌘ K</span>
           </kbd>
         </button>
       </div>
