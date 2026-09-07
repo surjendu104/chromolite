@@ -99,9 +99,9 @@ export const DuplicatesPanel: React.FC = () => {
               <span className="text-text-muted font-mono text-[10px] font-semibold tracking-wider uppercase">
                 INTEGRITY & REDUNDANCY
               </span>
-              <Badge variant="accent" size="xs" mono>
+              {/*<Badge variant="accent" size="xs" mono>
                 Phase 7
-              </Badge>
+              </Badge>*/}
               {data && (
                 <Badge
                   variant={result && result.total_redundant_vectors > 0 ? 'warning' : 'success'}

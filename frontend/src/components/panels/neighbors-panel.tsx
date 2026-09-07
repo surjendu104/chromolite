@@ -107,9 +107,9 @@ export const NeighborsPanel: React.FC = () => {
               <span className="text-text-muted font-mono text-[10px] font-semibold tracking-wider uppercase">
                 LOCAL STRUCTURE
               </span>
-              <Badge variant="accent" size="xs" mono>
+              {/*<Badge variant="accent" size="xs" mono>
                 Phase 5
-              </Badge>
+              </Badge>*/}
               {data && (
                 <Badge variant="neutral" size="xs" mono>
                   k = {result?.k}

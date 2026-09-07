@@ -119,9 +119,9 @@ export const OutliersPanel: React.FC = () => {
               <span className="text-text-muted font-mono text-[10px] font-semibold tracking-wider uppercase">
                 ANOMALIES & ISOLATION
               </span>
-              <Badge variant="accent" size="xs" mono>
+              {/*<Badge variant="accent" size="xs" mono>
                 Phase 6
-              </Badge>
+              </Badge>*/}
               {data && (
                 <Badge variant="warning" size="xs" mono>
                   Top {(thresholdQuantile * 100).toFixed(1)}% Cutoff

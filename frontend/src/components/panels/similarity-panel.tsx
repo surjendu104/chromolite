@@ -73,9 +73,9 @@ export const SimilarityPanel: React.FC = () => {
               <span className="text-text-muted font-mono text-[10px] font-semibold tracking-wider uppercase">
                 EMBEDDING DIAGNOSTICS
               </span>
-              <Badge variant="accent" size="xs" mono>
+              {/*<Badge variant="accent" size="xs" mono>
                 Phase 2
-              </Badge>
+              </Badge>*/}
               {data && (
                 <Badge variant="neutral" size="xs" mono>
                   {data.method === 'exact'

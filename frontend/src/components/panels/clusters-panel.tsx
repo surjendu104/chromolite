@@ -94,9 +94,9 @@ export const ClustersPanel: React.FC = () => {
               <span className="text-text-muted font-mono text-[10px] font-semibold tracking-wider uppercase">
                 TOPOLOGY & STRUCTURE
               </span>
-              <Badge variant="accent" size="xs" mono>
+              {/*<Badge variant="accent" size="xs" mono>
                 Phase 8 & 9
-              </Badge>
+              </Badge>*/}
               {data && (
                 <Badge variant="neutral" size="xs" mono>
                   {result?.k} Partitions · {algorithm === 'minibatch_kmeans' ? 'MiniBatch' : 'K-Means'}

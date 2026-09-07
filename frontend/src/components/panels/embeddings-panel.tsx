@@ -95,9 +95,9 @@ export const EmbeddingsPanel: React.FC = () => {
               <span className="text-text-muted font-mono text-[10px] font-semibold tracking-wider uppercase">
                 MANIFOLD PROJECTION
               </span>
-              <Badge variant="accent" size="xs" mono>
+              {/*<Badge variant="accent" size="xs" mono>
                 {algorithm === 'pca' ? 'Phase 3 (PCA Baseline)' : 'Phase 4 (Non-Linear)'}
-              </Badge>
+              </Badge>*/}
               {data && (
                 <Badge variant="neutral" size="xs" mono>
                   {result?.points.length.toLocaleString()} points
